@@ -23,10 +23,15 @@ export async function middleware(req: NextRequest) {
   );
 
   const protectedPaths = ["/detect"];
-  const isProtected = protectedPaths.some((p) => req.nextUrl.pathname.startsWith(p));
+  const isProtected = protectedPaths.some((p) =>
+    req.nextUrl.pathname.startsWith(p)
+  );
 
   if (isProtected) {
-    const { data: { session } } = await supabase.auth.getSession();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
     if (!session) {
       const url = req.nextUrl.clone();
       url.pathname = "/login";

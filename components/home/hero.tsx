@@ -148,7 +148,7 @@ export default function Hero() {
               className="mt-16 grid grid-cols-3 gap-8 max-w-2xl mx-auto"
             >
               <div className="text-center">
-                <div className="text-3xl font-bold text-foreground">99.2%</div>
+                <div className="text-3xl font-bold text-foreground">90% ++</div>
                 <div className="text-sm text-muted-foreground mt-1">Detection Accuracy</div>
               </div>
               <div className="text-center">

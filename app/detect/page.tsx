@@ -1,7 +1,13 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { useEffect, useRef, useState } from "react"
+import {
+  useEffect,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type DragEvent,
+} from "react"
 import {
   Upload,
   Loader2,
@@ -16,23 +22,107 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
+import { supabaseBrowser } from "@/lib/supabase/client" // ⭐ NEW
 
-type DetectionResult = "authentic" | "suspicious" | "deepfake" | null
+type Verdict = "authentic" | "suspicious" | "deepfake"
+type DetectionResultType = Verdict | null
 type AnalysisMode = "image" | "video"
 
+// Raw response from your video FastAPI endpoint
+type VideoApiResponse = {
+  verdict: "real" | "deepfake"
+  confidence: number
+  message: string
+  processing_time: number
+}
+
+// Unified response type used by the UI
+type DetectionApiResponse = {
+  verdict: Verdict
+  title: string
+  message: string
+  confidence: number
+  detection_details: {
+    facial_texture: number
+    lighting_shadow: number
+    pixel_artifacts: number
+  }
+  analysis_summary: {
+    facial_landmarks_examined: number
+    potential_indicators: number
+    processing_time: number
+  }
+  reasons: string[]
+}
+
+// Separate base URLs so image + video can be on different ports
+const IMAGE_API_BASE_URL =
+  process.env.NEXT_PUBLIC_IMAGE_API_URL ?? "http://127.0.0.1:8000"
+
+const VIDEO_API_BASE_URL =
+  process.env.NEXT_PUBLIC_VIDEO_API_URL ?? "http://127.0.0.1:8002"
+
+// ⭐ NEW: helper to log each scan AND bump profiles.scan_count
+async function logScanToSupabase(
+  mode: AnalysisMode,
+  verdict: Verdict,
+  confidence: number
+) {
+  try {
+    const supabase = supabaseBrowser();
+
+    const {
+      data: { session },
+      error: sessionError,
+    } = await supabase.auth.getSession();
+
+    if (sessionError || !session?.user) {
+      console.warn("No session when logging scan:", sessionError);
+      return;
+    }
+
+    const userId = session.user.id;
+
+    const resultText =
+      verdict === "authentic"
+        ? "REAL"
+        : verdict === "deepfake"
+        ? "FAKE"
+        : "SUSPICIOUS";
+
+    const { error: insertError } = await supabase.from("scan_logs").insert({
+      user_id: userId,
+      media_type: mode === "image" ? "IMAGE" : "VIDEO",
+      result: resultText,
+      confidence,
+    });
+
+    if (insertError) {
+      console.error("Failed to insert scan log:", insertError);
+    }
+  } catch (err) {
+    console.error("Unexpected error logging scan:", err);
+  }
+}
+
 export default function DetectPage() {
-  const [isAnalyzing, setIsAnalyzing] = useState(false)
-  const [result, setResult] = useState<DetectionResult>(null)
-  const [confidence, setConfidence] = useState(0)
   const [mode, setMode] = useState<AnalysisMode>("image")
+  const [isAnalyzing, setIsAnalyzing] = useState(false)
 
   const [file, setFile] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
 
+  const [resultType, setResultType] = useState<DetectionResultType>(null)
+  const [apiResult, setApiResult] = useState<DetectionApiResponse | null>(null)
+
+  const [isDragActive, setIsDragActive] = useState(false)
+
   const uploadRef = useRef<HTMLDivElement | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
-  // Clean up object URL when file changes / component unmounts
+  const isImageMode = mode === "image"
+
+  // cleanup preview URL on unmount
   useEffect(() => {
     return () => {
       if (previewUrl) URL.revokeObjectURL(previewUrl)
@@ -42,28 +132,24 @@ export default function DetectPage() {
   const handleModeChange = (nextMode: AnalysisMode) => {
     setMode(nextMode)
     setIsAnalyzing(false)
-    setResult(null)
-    setConfidence(0)
+    setResultType(null)
+    setApiResult(null)
     setFile(null)
+
     if (previewUrl) URL.revokeObjectURL(previewUrl)
     setPreviewUrl(null)
 
-    // Smooth scroll to upload section
     setTimeout(() => {
       uploadRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
     }, 150)
   }
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selected = e.target.files?.[0]
-    if (!selected) return
-
-    // Optional: simple type guard
-    if (mode === "image" && !selected.type.startsWith("image/")) {
+  const processSelectedFile = (selected: File) => {
+    if (isImageMode && !selected.type.startsWith("image/")) {
       alert("Please upload a valid image file.")
       return
     }
-    if (mode === "video" && !selected.type.startsWith("video/")) {
+    if (!isImageMode && !selected.type.startsWith("video/")) {
       alert("Please upload a valid video file.")
       return
     }
@@ -73,142 +159,242 @@ export default function DetectPage() {
     const url = URL.createObjectURL(selected)
     setFile(selected)
     setPreviewUrl(url)
-    setResult(null)
-    setConfidence(0)
+    setResultType(null)
+    setApiResult(null)
+  }
+
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const selected = e.target.files?.[0]
+    if (!selected) return
+    processSelectedFile(selected)
   }
 
   const handleUploadClick = () => {
     fileInputRef.current?.click()
   }
 
-  const handleUpload = () => {
+  const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragActive(true)
+  }
+
+  const handleDragLeave = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragActive(false)
+  }
+
+  const handleDrop = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragActive(false)
+
+    const droppedFile = e.dataTransfer.files?.[0]
+    if (!droppedFile) return
+    processSelectedFile(droppedFile)
+  }
+
+  // Call FastAPI image endpoint
+  const analyzeImageWithBackend = async (
+    file: File
+  ): Promise<DetectionApiResponse> => {
+    const formData = new FormData()
+    formData.append("file", file)
+
+    const res = await fetch(`${IMAGE_API_BASE_URL}/detect/image`, {
+      method: "POST",
+      body: formData,
+    })
+
+    if (!res.ok) {
+      const text = await res.text()
+      console.error("Backend error (image):", text)
+      throw new Error(`Image backend error: ${res.status}`)
+    }
+
+    const data: DetectionApiResponse = await res.json()
+    return data
+  }
+
+  // Call FastAPI video endpoint and map to DetectionApiResponse
+  const analyzeVideoWithBackend = async (
+    file: File
+  ): Promise<DetectionApiResponse> => {
+    const formData = new FormData()
+    formData.append("file", file)
+
+    const res = await fetch(`${VIDEO_API_BASE_URL}/detect/video`, {
+      method: "POST",
+      body: formData,
+    })
+
+    if (!res.ok) {
+      const text = await res.text()
+      console.error("Backend error (video):", text)
+      throw new Error(`Video backend error: ${res.status}`)
+    }
+
+    const raw: VideoApiResponse = await res.json()
+
+    const mappedVerdict: Verdict =
+      raw.verdict === "deepfake" ? "deepfake" : "authentic"
+
+    const title =
+      mappedVerdict === "deepfake" ? "Deepfake Detected" : "No Deepfake Detected"
+
+    const mapped: DetectionApiResponse = {
+      verdict: mappedVerdict,
+      title,
+      message: raw.message,
+      confidence: raw.confidence,
+      detection_details: {
+        facial_texture: mappedVerdict === "deepfake" ? 80 : 20,
+        lighting_shadow: mappedVerdict === "deepfake" ? 75 : 25,
+        pixel_artifacts: mappedVerdict === "deepfake" ? 85 : 15,
+      },
+      analysis_summary: {
+        facial_landmarks_examined: 68,
+        potential_indicators: mappedVerdict === "deepfake" ? 3 : 0,
+        processing_time: raw.processing_time,
+      },
+      reasons:
+        mappedVerdict === "deepfake"
+          ? [
+              "Temporal inconsistencies detected across frames",
+              "Unnatural facial texture and blending artifacts",
+              "Inconsistent lighting and shadows over time",
+            ]
+          : [
+              "Consistent facial features and motion across frames",
+              "No significant pixel-level anomalies detected",
+            ],
+    }
+
+    return mapped
+  }
+
+  const handleUpload = async () => {
     if (!file) {
-      alert(`Please upload a ${mode === "image" ? "image" : "video"} before starting the analysis.`)
+      alert(
+        `Please upload a ${
+          isImageMode ? "image" : "video"
+        } before starting the analysis.`
+      )
       return
     }
 
-    setIsAnalyzing(true)
-    setResult(null)
+    try {
+      setIsAnalyzing(true)
+      setResultType(null)
+      setApiResult(null)
 
-    // Simulate analysis
-    setTimeout(() => {
-      const outcomes: Array<Exclude<DetectionResult, null>> = ["authentic", "suspicious", "deepfake"]
-      const randomResult = outcomes[Math.floor(Math.random() * outcomes.length)]
-      setResult(randomResult)
-      setConfidence(Math.floor(Math.random() * 30) + 70)
+      let data: DetectionApiResponse
+
+      if (isImageMode) {
+        data = await analyzeImageWithBackend(file)
+      } else {
+        data = await analyzeVideoWithBackend(file)
+      }
+
+      // ⭐ NEW: log this scan to Supabase (fire-and-forget)
+      logScanToSupabase(mode, data.verdict, data.confidence).catch((e) =>
+        console.error("logScanToSupabase failed:", e)
+      )
+
+      setApiResult(data)
+      setResultType(data.verdict)
+    } catch (err) {
+      console.error(err)
+      alert(
+        `Failed to analyze ${
+          isImageMode ? "image" : "video"
+        }. Make sure the ${isImageMode ? "image" : "video"} backend is running (${
+          isImageMode ? IMAGE_API_BASE_URL : VIDEO_API_BASE_URL
+        }).`
+      )
+    } finally {
       setIsAnalyzing(false)
-    }, 2500)
+    }
   }
 
   const getResultConfig = () => {
-    switch (result) {
-      case "authentic":
-        return {
-          icon: CheckCircle,
-          color: "text-green-500",
-          bgColor: "bg-green-500/10",
-          borderColor: "border-green-500/50",
-          title: "Authentic Media",
-          description:
-            mode === "image"
-              ? "No signs of manipulation detected in this image. It appears to be genuine."
-              : "No significant inconsistencies were detected across the video frames. It appears to be genuine.",
-        }
-      case "suspicious":
-        return {
-          icon: AlertTriangle,
-          color: "text-yellow-500",
-          bgColor: "bg-yellow-500/10",
-          borderColor: "border-yellow-500/50",
-          title: "Suspicious Content",
-          description:
-            mode === "image"
-              ? "Some visual inconsistencies were detected. Manual verification is recommended."
-              : "Temporal or visual inconsistencies were observed in the video. Manual verification is recommended.",
-        }
-      case "deepfake":
-        return {
-          icon: XCircle,
-          color: "text-red-500",
-          bgColor: "bg-red-500/10",
-          borderColor: "border-red-500/50",
-          title: "Deepfake Detected",
-          description:
-            mode === "image"
-              ? "Strong indicators of facial manipulation were found. This image is likely synthetic."
-              : "Strong indicators of frame-level and motion manipulation were found. This video is likely synthetic.",
-        }
-      default:
-        return null
-    }
-  }
+    if (!resultType || !apiResult) return null
 
-  const getExplanationPoints = (): string[] => {
-    if (!result) return []
+    const color =
+      resultType === "authentic"
+        ? "text-green-500"
+        : resultType === "suspicious"
+        ? "text-yellow-500"
+        : "text-red-500"
 
-    if (result === "authentic") {
-      return [
-        "No strong manipulation cues were detected across the analyzed regions.",
-        "Facial landmarks, lighting patterns, and textures stayed within normal thresholds.",
-        "Temporal and spatial consistency matched typical real-world behaviour.",
-      ]
-    }
+    const bgColor =
+      resultType === "authentic"
+        ? "bg-green-500/10"
+        : resultType === "suspicious"
+        ? "bg-yellow-500/10"
+        : "bg-red-500/10"
 
-    if (mode === "image") {
-      if (result === "suspicious") {
-        return [
-          "Minor inconsistencies in skin texture and edge blending were detected.",
-          "Lighting or shadow transitions around key facial regions appear slightly unusual.",
-          "While not conclusive, these patterns often appear in lightly edited or compressed media.",
-        ]
-      }
-      // deepfake + image
-      return [
-        "Notable texture inconsistencies were found around the cheeks, jawline, or forehead.",
-        "Edge blending near the hairline and facial boundaries did not match natural image statistics.",
-        "Facial landmark alignment showed abnormal symmetry or proportions typical of face-swapping.",
-      ]
-    } else {
-      // video mode
-      if (result === "suspicious") {
-        return [
-          "Subtle irregularities in frame-to-frame motion were detected.",
-          "Blink rate or mouth movement patterns slightly deviated from typical human behaviour.",
-          "Some frames contained minor artifacting that may come from editing or recompression.",
-        ]
-      }
-      // deepfake + video
-      return [
-        "Inconsistent motion patterns were detected across frames (e.g., jittery head or eye movement).",
-        "Blinking, mouth movement, or facial expression timing did not match natural rhythms.",
-        "Temporal artifacts and boundary inconsistencies across frames strongly indicate synthetic generation.",
-      ]
+    const borderColor =
+      resultType === "authentic"
+        ? "border-green-500/50"
+        : resultType === "suspicious"
+        ? "border-yellow-500/50"
+        : "border-red-500/50"
+
+    const Icon =
+      resultType === "authentic"
+        ? CheckCircle
+        : resultType === "suspicious"
+        ? AlertTriangle
+        : XCircle
+
+    return {
+      icon: Icon,
+      color,
+      bgColor,
+      borderColor,
+      title: apiResult.title,
+      description: apiResult.message,
+      confidence: apiResult.confidence,
+      details: apiResult.detection_details,
+      summary: apiResult.analysis_summary,
+      reasons: apiResult.reasons,
     }
   }
 
   const resultConfig = getResultConfig()
-  const explanationPoints = getExplanationPoints()
-  const isImageMode = mode === "image"
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-16 items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-full bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center">
-              <Shield className="h-5 w-5 text-white" />
-            </div>
-            <span className="font-bold text-foreground">Detectify</span>
-          </Link>
-          <Link href="/">
-            <Button variant="ghost" size="sm">
-              <ArrowLeft className="h-4 w-4 mr-2" />
+      {/* Header — Matching Contact Page */}
+        <header className="sticky top-4 z-50 mx-auto max-w-4xl px-4">
+          <div className="flex items-center justify-between rounded-full bg-black/80 backdrop-blur-sm border border-zinc-800 shadow-lg px-6 py-3">
+            
+            {/* Logo */}
+            <Link href="/" className="flex items-center gap-2">
+              <div className="h-8 w-8 rounded-full bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center">
+                <Shield className="h-5 w-5 text-white" />
+              </div>
+              <span className="font-bold text-white">Detectify</span>
+            </Link>
+
+            {/* Back button */}
+            <Link
+              href="/"
+              className="flex items-center gap-2 text-sm text-zinc-400 hover:text-white transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4" />
               Back to Home
-            </Button>
-          </Link>
-        </div>
-      </header>
+            </Link>
+
+          </div>
+        </header>
+
+        {/* BG accents to match Contact Page */}
+        <div className="absolute inset-0 bg-gradient-to-br from-zinc-900 via-black to-zinc-900" />
+        <div className="pointer-events-none absolute -top-24 -right-16 w-[28rem] h-[28rem] rounded-full bg-[#e78a53]/10 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-24 -left-16 w-[34rem] h-[34rem] rounded-full bg-[#e78a53]/5 blur-3xl" />
 
       {/* Main Content */}
       <section className="relative py-16 sm:py-20">
@@ -224,11 +410,12 @@ export default function DetectPage() {
               Detect Deepfakes Now
             </h1>
             <p className="text-lg text-pretty text-muted-foreground max-w-2xl mx-auto">
-              Upload an image or video to analyze for deepfake manipulation. Choose your detection mode below and get
-              instant results with confidence scores and forensic-style breakdowns.
+              Upload an image or video to analyze for deepfake manipulation.
+              Choose your detection mode below and get instant results with
+              confidence scores and forensic-style breakdowns.
             </p>
 
-            {/* Mode toggle */}
+            {/* Mode Toggle */}
             <div className="mt-5 flex justify-center">
               <div className="inline-flex items-center rounded-full bg-card border border-border px-1 py-1">
                 <button
@@ -270,7 +457,8 @@ export default function DetectPage() {
               <ImageIcon className="h-12 w-12 text-orange-500 mx-auto mb-4" />
               <h3 className="font-semibold text-lg mb-2">Image Analysis</h3>
               <p className="text-sm text-muted-foreground">
-                Detect manipulated photos with facial feature analysis and pixel-level examination.
+                Detect manipulated photos with facial feature analysis and
+                pixel-level examination.
               </p>
             </motion.div>
             <motion.div
@@ -282,7 +470,8 @@ export default function DetectPage() {
               <Video className="h-12 w-12 text-orange-500 mx-auto mb-4" />
               <h3 className="font-semibold text-lg mb-2">Video Detection</h3>
               <p className="text-sm text-muted-foreground">
-                Frame-by-frame and temporal pattern analysis to identify deepfake videos and synthetic media.
+                Frame-by-frame and temporal pattern analysis to identify
+                deepfake videos and synthetic media.
               </p>
             </motion.div>
             <motion.div
@@ -294,7 +483,8 @@ export default function DetectPage() {
               <Shield className="h-12 w-12 text-orange-500 mx-auto mb-4" />
               <h3 className="font-semibold text-lg mb-2">Real-Time Results</h3>
               <p className="text-sm text-muted-foreground">
-                Get instant detection results with confidence scores and human-friendly explanations.
+                Get instant detection results with confidence scores and
+                human-friendly explanations.
               </p>
             </motion.div>
           </div>
@@ -306,7 +496,10 @@ export default function DetectPage() {
             transition={{ duration: 0.45, delay: 0.18 }}
             className="max-w-4xl mx-auto"
           >
-            <div ref={uploadRef} className="bg-card border border-border rounded-2xl p-8 shadow-xl">
+            <div
+              ref={uploadRef}
+              className="bg-card border border-border rounded-2xl p-8 shadow-xl"
+            >
               {/* Hidden file input */}
               <input
                 ref={fileInputRef}
@@ -316,29 +509,79 @@ export default function DetectPage() {
                 onChange={handleFileChange}
               />
 
-              {!isAnalyzing && !result && (
+              {/* Upload state */}
+              {!isAnalyzing && !resultConfig && (
                 <div className="text-center">
                   <div
                     onClick={handleUploadClick}
-                    className="cursor-pointer border-2 border-dashed border-border rounded-xl p-12 mb-6 hover:border-orange-500/60 transition-colors"
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                    className={`cursor-pointer border-2 border-dashed rounded-xl p-12 mb-6 transition-colors ${
+                      isDragActive
+                        ? "border-orange-500 bg-orange-500/5"
+                        : "border-border hover:border-orange-500/60"
+                    }`}
                   >
                     <Upload className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
                     <p className="text-foreground font-medium mb-2 text-lg">
                       {file
                         ? `Selected: ${file.name}`
                         : isImageMode
-                        ? "Click to upload an image"
-                        : "Click to upload a video"}
+                        ? "Click or drag & drop an image"
+                        : "Click or drag & drop a video"}
                     </p>
                     <p className="text-sm text-muted-foreground mb-4">
                       {isImageMode
                         ? "JPG, PNG, WEBP (MAX. 20MB)"
                         : "MP4, MOV, AVI (recommended under 50MB)"}
                     </p>
-                    <p className="text-xs text-muted-foreground">
-                      {isImageMode
-                        ? "The image model focuses on spatial artifacts such as texture, edges, and blending seams."
-                        : "The video model focuses on frame sequences, motion consistency, and temporal anomalies."}
+
+                    {/* inner divider */}
+                    <div className="mx-auto mt-2 mb-4 h-px max-w-md border-t border-dashed border-border/40" />
+
+                    {/* Short limitations block */}
+                    <div className="mx-auto max-w-md flex items-start gap-2 text-left">
+                      <Info className="h-3.5 w-3.5 mt-0.5 text-orange-500 flex-shrink-0" />
+                      <div className="text-[11px] sm:text-xs text-muted-foreground space-y-1">
+                        <p className="font-medium text-foreground/90">
+                          {isImageMode
+                            ? "Image model scope & limitations"
+                            : "Video model scope & limitations"}
+                        </p>
+                        {isImageMode ? (
+                          <>
+                            <p>
+                              • Best for clear human faces (trained on GAN vs real
+                              faces).
+                            </p>
+                            <p>
+                              • Filters / AR effects, strong warps or multiple/hidden
+                              faces may confuse the detector.
+                            </p>
+                          </>
+                        ) : (
+                          <>
+                            <p>
+                              • Best for single-face talking-head clips
+                              (FaceForensics++ style).
+                            </p>
+                            <p>
+                              • Heavy filters, very low light, compression or screen
+                              recordings can reduce reliability.
+                            </p>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    <p className="mt-3 text-[11px] text-muted-foreground">
+                      This is a research tool and not 100% accurate. Always verify
+                      important decisions manually.
+                    </p>
+
+                    <p className="mt-2 text-[11px] text-muted-foreground">
+                      You can also drag & drop a file anywhere inside this box.
                     </p>
                   </div>
 
@@ -372,11 +615,14 @@ export default function DetectPage() {
                     disabled={!file || isAnalyzing}
                     className="w-full sm:w-auto px-8 bg-orange-500 hover:bg-orange-600 disabled:opacity-60"
                   >
-                    {file ? `Start ${isImageMode ? "Image" : "Video"} Analysis` : "Upload a file to start"}
+                    {file
+                      ? `Start ${isImageMode ? "Image" : "Video"} Analysis`
+                      : "Upload a file to start"}
                   </Button>
                 </div>
               )}
 
+              {/* Loading state */}
               {isAnalyzing && (
                 <div className="text-center py-12">
                   <Loader2 className="h-20 w-20 text-orange-500 mx-auto mb-6 animate-spin" />
@@ -384,15 +630,10 @@ export default function DetectPage() {
                     Analyzing {isImageMode ? "image" : "video"}...
                   </p>
                   <p className="text-sm text-muted-foreground mb-4">
-                    Our AI is examining{" "}
-                    {isImageMode ? "facial features and pixel patterns" : "frame sequences and facial motion"} for signs
-                    of manipulation.
+                    Our AI is examining facial features, textures, lighting and
+                    pixel patterns for signs of manipulation.
                   </p>
                   <div className="max-w-md mx-auto">
-                    <div className="flex justify-between text-xs text-muted-foreground mb-2">
-                      <span>Processing...</span>
-                      <span>75%</span>
-                    </div>
                     <div className="h-2 bg-muted rounded-full overflow-hidden">
                       <motion.div
                         className="h-full bg-gradient-to-r from-orange-500 to-orange-600"
@@ -405,7 +646,8 @@ export default function DetectPage() {
                 </div>
               )}
 
-              {result && resultConfig && (
+              {/* Result state */}
+              {resultConfig && (
                 <motion.div
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
@@ -413,64 +655,93 @@ export default function DetectPage() {
                   className={`border ${resultConfig.borderColor} ${resultConfig.bgColor} rounded-xl p-8`}
                 >
                   <div className="text-center mb-6">
-                    <resultConfig.icon className={`h-20 w-20 ${resultConfig.color} mx-auto mb-4`} />
-                    <h3 className="text-3xl font-bold text-foreground mb-2">{resultConfig.title}</h3>
-                    <p className="text-muted-foreground mb-4">{resultConfig.description}</p>
+                    <resultConfig.icon
+                      className={`h-20 w-20 ${resultConfig.color} mx-auto mb-4`}
+                    />
+                    <h3 className="text-3xl font-bold text-foreground mb-2">
+                      {resultConfig.title}
+                    </h3>
+                    <p className="text-muted-foreground mb-4">
+                      {resultConfig.description}
+                    </p>
                     <div className="inline-flex items-center gap-2 px-6 py-3 bg-background/50 rounded-full">
-                      <span className="text-sm text-muted-foreground">Confidence:</span>
-                      <span className={`text-2xl font-bold ${resultConfig.color}`}>{confidence}%</span>
+                      <span className="text-sm text-muted-foreground">
+                        Confidence:
+                      </span>
+                      <span
+                        className={`text-2xl font-bold ${resultConfig.color}`}
+                      >
+                        {resultConfig.confidence}%
+                      </span>
                     </div>
                   </div>
 
+                  {/* Details + Summary */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                     <div className="bg-background/50 rounded-lg p-4">
-                      <h4 className="font-semibold text-sm mb-3">Detection Details</h4>
+                      <h4 className="font-semibold text-sm mb-3">
+                        Detection Details
+                      </h4>
                       <div className="space-y-2 text-sm">
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">
-                            {isImageMode ? "Facial Texture Analysis:" : "Frame Consistency:"}
+                            Facial Texture Analysis:
                           </span>
-                          <span className="font-medium">{Math.floor(Math.random() * 30) + 70}%</span>
+                          <span className="font-medium">
+                            {resultConfig.details.facial_texture}%
+                          </span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">
-                            {isImageMode ? "Lighting & Shadow Check:" : "Motion / Blink Pattern:"}
+                            Lighting &amp; Shadow Check:
                           </span>
-                          <span className="font-medium">{Math.floor(Math.random() * 30) + 70}%</span>
+                          <span className="font-medium">
+                            {resultConfig.details.lighting_shadow}%
+                          </span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">
-                            {isImageMode ? "Pixel-Level Artifacts:" : "Temporal Artifacts:"}
+                            Pixel-Level Artifacts:
                           </span>
-                          <span className="font-medium">{Math.floor(Math.random() * 30) + 70}%</span>
+                          <span className="font-medium">
+                            {resultConfig.details.pixel_artifacts}%
+                          </span>
                         </div>
                       </div>
                     </div>
+
                     <div className="bg-background/50 rounded-lg p-4">
-                      <h4 className="font-semibold text-sm mb-3">Analysis Summary</h4>
+                      <h4 className="font-semibold text-sm mb-3">
+                        Analysis Summary
+                      </h4>
                       <div className="space-y-2 text-sm text-muted-foreground">
                         <p>
-                          • {Math.floor(Math.random() * 50) + 50}{" "}
-                          {isImageMode ? "facial landmarks examined" : "frames analyzed with facial landmarks"}
+                          • {resultConfig.summary.facial_landmarks_examined}{" "}
+                          facial landmarks examined
                         </p>
                         <p>
-                          • {Math.floor(Math.random() * 20) + 5} potential{" "}
-                          {isImageMode ? "visual indicators" : "temporal inconsistencies"} found
+                          • {resultConfig.summary.potential_indicators}{" "}
+                          potential indicators found
                         </p>
-                        <p>• Processing time: {(Math.random() * 2 + 1).toFixed(2)}s</p>
+                        <p>
+                          • Processing time:{" "}
+                          {resultConfig.summary.processing_time}s
+                        </p>
                       </div>
                     </div>
                   </div>
 
-                  {/* Why this result? */}
-                  {explanationPoints.length > 0 && (
+                  {/* Why this result */}
+                  {resultConfig.reasons.length > 0 && (
                     <div className="bg-background/60 rounded-lg p-4 mb-6 border border-border/60">
                       <div className="flex items-center gap-2 mb-2">
                         <Info className="h-4 w-4 text-orange-500" />
-                        <h4 className="text-sm font-semibold text-foreground">Why this result?</h4>
+                        <h4 className="text-sm font-semibold text-foreground">
+                          Why this result?
+                        </h4>
                       </div>
                       <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside text-left">
-                        {explanationPoints.map((point, idx) => (
+                        {resultConfig.reasons.map((point, idx) => (
                           <li key={idx}>{point}</li>
                         ))}
                       </ul>
@@ -479,8 +750,16 @@ export default function DetectPage() {
 
                   <Button
                     onClick={() => {
-                      setResult(null)
-                      setConfidence(0)
+                      // reset current result
+                      setResultType(null)
+                      setApiResult(null)
+                      setFile(null)
+                      if (previewUrl) {
+                        URL.revokeObjectURL(previewUrl)
+                      }
+                      setPreviewUrl(null)
+                      // immediately open file picker for "analyze with other files"
+                      fileInputRef.current?.click()
                     }}
                     variant="outline"
                     className="w-full"

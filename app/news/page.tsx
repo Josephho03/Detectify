@@ -1,103 +1,118 @@
-"use client"
+"use client";
 
-import { motion } from "framer-motion"
-import { Calendar, ArrowLeft, TrendingUp, Clock, User } from "lucide-react"
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Shield } from "lucide-react"
+import React, { useEffect, useState } from "react";
+import { motion } from "framer-motion";
+import {
+  Calendar,
+  ArrowLeft,
+  TrendingUp,
+  Clock,
+  User,
+  Shield,
+  X,
+} from "lucide-react";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { supabaseBrowser } from "@/lib/supabase/client";
+import type { NewsArticle } from "@/lib/admin/types";
+
+type NewsRow = {
+  id: string;
+  title: string;
+  category: string;
+  excerpt: string;
+  content: string;
+  author: string;
+  read_time: string;
+  image: string;
+  link: string | null;
+  created_at: string;
+};
 
 export default function NewsPage() {
-  const allNews = [
-    {
-      category: "Research",
-      title: "New AI Model Achieves 99.5% Deepfake Detection Accuracy",
-      excerpt:
-        "Researchers develop breakthrough neural network architecture that significantly improves detection of sophisticated deepfakes.",
-      content:
-        "A team of researchers from leading universities has developed a new AI model that achieves unprecedented accuracy in detecting deepfakes. The model uses advanced neural network architecture and can identify even the most sophisticated manipulations.",
-      date: "March 15, 2024",
-      author: "Dr. Sarah Chen",
-      readTime: "5 min read",
-      image: "/ai-research-lab.png",
-    },
-    {
-      category: "Security",
-      title: "Major Social Media Platforms Adopt Deepfake Detection Tools",
-      excerpt:
-        "Leading platforms announce integration of AI-powered detection systems to combat misinformation and protect users.",
-      content:
-        "Major social media companies have announced the integration of advanced deepfake detection tools into their platforms. This move aims to combat the spread of misinformation and protect users from manipulated content.",
-      date: "March 12, 2024",
-      author: "Michael Rodriguez",
-      readTime: "4 min read",
-      image: "/social-media-security.png",
-    },
-    {
-      category: "Policy",
-      title: "New Regulations Target Malicious Use of Deepfake Technology",
-      excerpt: "Governments worldwide introduce legislation to criminalize harmful deepfake creation and distribution.",
-      content:
-        "Governments around the world are introducing new legislation to address the malicious use of deepfake technology. These regulations aim to criminalize the creation and distribution of harmful deepfakes while protecting legitimate uses.",
-      date: "March 8, 2024",
-      author: "Jennifer Park",
-      readTime: "6 min read",
-      image: "/government-policy-meeting.jpg",
-    },
-    {
-      category: "Industry",
-      title: "Financial Sector Invests Billions in Deepfake Prevention",
-      excerpt:
-        "Banks and financial institutions deploy advanced verification systems to prevent deepfake-enabled fraud.",
-      content:
-        "The financial sector is investing billions of dollars in deepfake prevention technologies. Banks and financial institutions are deploying advanced verification systems to protect against deepfake-enabled fraud and identity theft.",
-      date: "March 5, 2024",
-      author: "David Thompson",
-      readTime: "5 min read",
-      image: "/financial-technology.png",
-    },
-    {
-      category: "Technology",
-      title: "Blockchain Technology Proposed for Media Authentication",
-      excerpt:
-        "New blockchain-based system aims to verify the authenticity of digital media from creation to distribution.",
-      content:
-        "Researchers propose using blockchain technology to create an immutable record of digital media authenticity. This system would track media from creation to distribution, making it easier to verify genuine content.",
-      date: "March 1, 2024",
-      author: "Alex Kumar",
-      readTime: "7 min read",
-      image: "/placeholder.svg?height=400&width=600",
-    },
-    {
-      category: "Education",
-      title: "Universities Launch Deepfake Awareness Programs",
-      excerpt: "Educational institutions worldwide introduce courses on media literacy and deepfake detection.",
-      content:
-        "Universities are launching comprehensive programs to educate students about deepfakes and media literacy. These courses cover detection techniques, ethical implications, and the societal impact of synthetic media.",
-      date: "February 28, 2024",
-      author: "Prof. Emily Watson",
-      readTime: "4 min read",
-      image: "/placeholder.svg?height=400&width=600",
-    },
-  ]
+  const [allNews, setAllNews] = useState<NewsArticle[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // 👇 for the popup window
+  const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(
+    null
+  );
+
+  const mapRowToArticle = (row: NewsRow): NewsArticle => {
+    const date = new Date(row.created_at).toLocaleDateString("en-US", {
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+    });
+
+    return {
+      id: row.id,
+      title: row.title,
+      category: row.category,
+      excerpt: row.excerpt,
+      content: row.content,
+      author: row.author,
+      readTime: row.read_time,
+      image: row.image,
+      link: row.link ?? "",
+      date,
+    };
+  };
+
+  useEffect(() => {
+    const supabase = supabaseBrowser();
+
+    const load = async () => {
+      setLoading(true);
+      setError(null);
+
+      const { data, error } = await supabase
+        .from("news")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        console.error(error);
+        setError("Failed to load news.");
+      } else if (data) {
+        setAllNews(data.map(mapRowToArticle));
+      }
+
+      setLoading(false);
+    };
+
+    load();
+  }, []);
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-16 items-center justify-between">
+      {/* Header — Matching Contact Page */}
+      <header className="sticky top-4 z-50 mx-auto max-w-4xl px-4">
+        <div className="flex items-center justify-between rounded-full bg-black/80 backdrop-blur-sm border border-zinc-800 shadow-lg px-6 py-3">
+          {/* Logo */}
           <Link href="/" className="flex items-center gap-2">
             <div className="h-8 w-8 rounded-full bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center">
               <Shield className="h-5 w-5 text-white" />
             </div>
-            <span className="font-bold text-foreground">Detectify</span>
+            <span className="font-bold text-white">Detectify</span>
           </Link>
-          <Link href="/">
-            <Button variant="ghost" size="sm">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Home
-            </Button>
+
+          {/* Back button */}
+          <Link
+            href="/"
+            className="flex items-center gap-2 text-sm text-zinc-400 hover:text-white transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Home
           </Link>
         </div>
       </header>
+
+      {/* BG accents */}
+      <div className="absolute inset-0 bg-gradient-to-br from-zinc-900 via-black to-zinc-900" />
+      <div className="pointer-events-none absolute -top-24 -right-16 w-[28rem] h-[28rem] rounded-full bg-[#e78a53]/10 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-24 -left-16 w-[34rem] h-[34rem] rounded-full bg-[#e78a53]/5 blur-3xl" />
 
       <section className="relative py-24 sm:py-32">
         <div className="container mx-auto px-4">
@@ -109,71 +124,170 @@ export default function NewsPage() {
           >
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-orange-500/10 border border-orange-500/20 rounded-full mb-4">
               <TrendingUp className="h-5 w-5 text-orange-500" />
-              <span className="text-sm font-medium text-orange-500">Latest Updates</span>
+              <span className="text-sm font-medium text-orange-500">
+                Latest Updates
+              </span>
             </div>
             <h1 className="text-4xl font-bold tracking-tight text-balance text-foreground sm:text-6xl mb-4">
-              Deepfake News & Updates
+              Deepfake News &amp; Updates
             </h1>
             <p className="text-lg text-pretty text-muted-foreground max-w-2xl mx-auto">
-              Stay informed about the latest developments in deepfake technology, detection methods, and security
-              measures.
+              Stay informed about the latest developments in deepfake technology,
+              detection methods, and security measures.
             </p>
           </motion.div>
 
-          <div className="max-w-6xl mx-auto space-y-8">
-            {allNews.map((item, index) => (
-              <motion.article
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
-                className="group"
-              >
-                <div className="bg-card border border-border rounded-2xl overflow-hidden hover:border-orange-500/50 transition-all duration-300 hover:shadow-xl">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="md:col-span-1 aspect-video md:aspect-square overflow-hidden">
-                      <img
-                        src={item.image || "/placeholder.svg"}
-                        alt={item.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-                    </div>
-                    <div className="md:col-span-2 p-6 flex flex-col justify-between">
-                      <div>
-                        <div className="flex items-center gap-4 mb-3 flex-wrap">
-                          <span className="px-3 py-1 bg-primary/10 text-primary text-xs font-medium rounded-full">
-                            {item.category}
-                          </span>
-                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                            <Calendar className="h-3 w-3" />
-                            {item.date}
-                          </div>
-                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                            <User className="h-3 w-3" />
-                            {item.author}
-                          </div>
-                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                            <Clock className="h-3 w-3" />
-                            {item.readTime}
-                          </div>
-                        </div>
-                        <h2 className="text-2xl font-bold text-foreground mb-3 group-hover:text-primary transition-colors">
-                          {item.title}
-                        </h2>
-                        <p className="text-sm text-pretty text-muted-foreground mb-4">{item.excerpt}</p>
-                        <p className="text-sm text-muted-foreground">{item.content}</p>
+          {error && (
+            <div className="text-center text-sm text-red-400 mb-6">
+              {error}
+            </div>
+          )}
+
+          {loading ? (
+            <div className="text-center text-muted-foreground">
+              Loading articles...
+            </div>
+          ) : allNews.length === 0 ? (
+            <div className="text-center text-muted-foreground">
+              No news articles yet.
+            </div>
+          ) : (
+            <div className="max-w-6xl mx-auto space-y-8">
+              {allNews.map((item, index) => (
+                <motion.article
+                  id={item.id}  
+                  key={item.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: index * 0.1 }}
+                  className="group"
+                >
+                  <div className="bg-card border border-border rounded-2xl overflow-hidden hover:border-orange-500/50 transition-all duration-300 hover:shadow-xl">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      {/* Image – fixed aspect so it fits the box nicely */}
+                      <div className="md:col-span-1 aspect-video md:aspect-square overflow-hidden">
+                        <img
+                          src={item.image || "/placeholder.svg"}
+                          alt={item.title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
                       </div>
-                      <Button variant="ghost" className="w-fit mt-4 text-orange-500 hover:text-orange-600">
-                        Read Full Article →
-                      </Button>
+
+                      {/* Summary content */}
+                      <div className="md:col-span-2 p-6 flex flex-col justify-between">
+                        <div>
+                          <div className="flex items-center gap-4 mb-3 flex-wrap">
+                            <span className="px-3 py-1 bg-primary/10 text-primary text-xs font-medium rounded-full">
+                              {item.category}
+                            </span>
+                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                              <Calendar className="h-3 w-3" />
+                              {item.date}
+                            </div>
+                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                              <User className="h-3 w-3" />
+                              {item.author}
+                            </div>
+                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                              <Clock className="h-3 w-3" />
+                              {item.readTime}
+                            </div>
+                          </div>
+
+                          <h2 className="text-2xl font-bold text-foreground mb-2 group-hover:text-primary transition-colors">
+                            {item.title}
+                          </h2>
+
+                          <p className="text-sm text-pretty text-muted-foreground line-clamp-3">
+                            {item.excerpt}
+                          </p>
+                        </div>
+
+                        <Button
+                          variant="ghost"
+                          className="w-fit mt-4 text-orange-500 hover:text-orange-600"
+                          onClick={() => setSelectedArticle(item)}
+                        >
+                          Read Full Article →
+                        </Button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </motion.article>
-            ))}
-          </div>
+                </motion.article>
+              ))}
+            </div>
+          )}
         </div>
       </section>
+
+      {/* 🔍 Full article modal */}
+      {selectedArticle && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center px-4">
+          <div className="bg-card border border-border rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto shadow-2xl">
+            {/* Modal header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-border sticky top-0 bg-card/95 backdrop-blur-md z-10">
+              <h2 className="text-lg sm:text-xl font-semibold text-foreground">
+                {selectedArticle.title}
+              </h2>
+              <button
+                onClick={() => setSelectedArticle(null)}
+                className="p-1 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Modal body */}
+            <div className="px-6 pb-6 pt-4 space-y-4">
+              {/* Image */}
+              <div className="w-full aspect-video rounded-xl overflow-hidden mb-4">
+                <img
+                  src={selectedArticle.image || "/placeholder.svg"}
+                  alt={selectedArticle.title}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+
+              {/* Meta info */}
+              <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground mb-2">
+                <span className="px-3 py-1 bg-primary/10 text-primary rounded-full text-[11px] font-medium">
+                  {selectedArticle.category}
+                </span>
+                <div className="flex items-center gap-1">
+                  <Calendar className="h-3 w-3" />
+                  {selectedArticle.date}
+                </div>
+                <div className="flex items-center gap-1">
+                  <User className="h-3 w-3" />
+                  {selectedArticle.author}
+                </div>
+                <div className="flex items-center gap-1">
+                  <Clock className="h-3 w-3" />
+                  {selectedArticle.readTime}
+                </div>
+              </div>
+
+              {/* External link */}
+              {selectedArticle.link && (
+                <a
+                  href={selectedArticle.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs sm:text-sm text-orange-400 hover:text-orange-300 underline break-all"
+                >
+                  {selectedArticle.link}
+                </a>
+              )}
+
+              {/* Content with line breaks / HTML */}
+              <div
+                className="mt-2 text-sm text-muted-foreground leading-relaxed space-y-2"
+                dangerouslySetInnerHTML={{ __html: selectedArticle.content }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
-  )
+  );
 }

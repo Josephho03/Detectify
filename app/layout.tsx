@@ -23,12 +23,24 @@ const jetbrains = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Detectify - AI Deepfake Detection Platform",
+  title: "Detectify",
   description:
     "Advanced AI-powered deepfake detection for images and videos. Protect against scams, impersonation, and misinformation.",
+  icons: {
+    icon: [
+      {
+        url: "/shield.svg",
+        type: "image/svg+xml",
+      },
+    ],
+  },
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html
       lang="en"

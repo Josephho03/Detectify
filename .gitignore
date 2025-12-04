@@ -25,3 +25,29 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# python virtual environments
+.venv*
+venv/
+.venv_torch/
+
+# Datasets (DO NOT COMMIT)
+backend/data/
+backend/data_small/
+
+# Python / backend stuff
+backend/__pycache__/
+*.pyc
+
+# ML models (DO NOT COMMIT)
+backend/models/
+*.pth
+*.pt
+
+# Datasets (if any)
+backend/data/
+data/
+datasets/
+
+# Secrets (DO NOT COMMIT)
+backend/kaggle.json

@@ -1,70 +1,158 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabaseBrowser } from "@/lib/supabase/client";
 
 export default function AuthCallbackPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [msg, setMsg] = useState("Finishing up verification…");
+  const [msg, setMsg] = useState("Completing authentication...");
+  const hasRun = useRef(false);
+
+  // Helper: decide final redirect based on `next` + user's role
+  const redirectWithRole = async (
+    supabase: ReturnType<typeof supabaseBrowser>,
+    nextParam: string | null
+  ) => {
+    const safeNext =
+      nextParam && nextParam.startsWith("/") ? nextParam : "/";
+
+    // If next is something specific (like /admin), just go there.
+    if (safeNext !== "/") {
+      window.location.href = safeNext;
+      return;
+    }
+
+    // If next is "/" (or missing), check role to maybe send admin to /admin
+    const { data: userData } = await supabase.auth.getUser();
+
+    if (userData.user) {
+      const { data: profile } = await supabase
+        .from("profiles") // your profiles table
+        .select("role")
+        .eq("id", userData.user.id)
+        .single();
+
+      if (profile?.role === "admin") {
+        window.location.href = "/admin";
+        return;
+      }
+    }
+
+    // Fallback: normal users or unknown role → "/"
+    window.location.href = safeNext;
+  };
 
   useEffect(() => {
-    const supabase = supabaseBrowser(); // create inside effect/component
+    if (hasRun.current) return;
+    hasRun.current = true;
 
     const handle = async () => {
-      // 1. Parse hash for error (if any)
-      const url = new URL(window.location.href);
-      const hash = new URLSearchParams(url.hash.replace(/^#/, ""));
-      const error = hash.get("error");
-      const error_description = hash.get("error_description");
+      const supabase = supabaseBrowser();
 
-      // Clean the URL (remove hash and code from address bar)
       try {
-        const clean = window.location.origin + window.location.pathname;
-        window.history.replaceState(null, document.title, clean);
-      } catch {}
+        // Check if we already have a valid session
+        const {
+          data: { session: existingSession },
+        } = await supabase.auth.getSession();
 
-      if (error) {
-        setMsg(
-          error_description
-            ? `Oops: ${decodeURIComponent(error_description)}`
-            : "Something went wrong while verifying. Redirecting to login…"
+        if (existingSession) {
+          const next = searchParams?.get("next") || "/";
+          setMsg("Already authenticated! Redirecting...");
+          setTimeout(() => {
+            redirectWithRole(supabase, next);
+          }, 300);
+          return;
+        }
+
+        // Check for errors in hash
+        const hash = new URLSearchParams(
+          window.location.hash.replace(/^#/, "")
         );
-        setTimeout(() => router.replace("/login"), 2500);
-        return;
+        const hashError = hash.get("error");
+        const hashErrorDesc = hash.get("error_description");
+
+        if (hashError) {
+          console.error("OAuth error:", hashError, hashErrorDesc);
+          setMsg("Authentication failed");
+          setTimeout(() => router.replace("/login"), 2000);
+          return;
+        }
+
+        // Get the code from URL params
+        const code = searchParams?.get("code");
+
+        if (!code) {
+          router.replace("/login");
+          return;
+        }
+
+        // Try to exchange code for session
+        const { data, error: exchangeError } =
+          await supabase.auth.exchangeCodeForSession(code);
+
+        // If exchange fails, wait and check session again
+        if (exchangeError) {
+          console.warn("Exchange error, retrying:", exchangeError.message);
+          await new Promise((resolve) => setTimeout(resolve, 500));
+
+          const {
+            data: { session: retrySession },
+          } = await supabase.auth.getSession();
+
+          if (retrySession) {
+            const next = searchParams?.get("next") || "/";
+            setMsg("Success! Redirecting...");
+            setTimeout(() => {
+              redirectWithRole(supabase, next);
+            }, 300);
+            return;
+          }
+
+          setMsg("Authentication failed");
+          setTimeout(() => router.replace("/login"), 2000);
+          return;
+        }
+
+        // Success
+        setMsg("Success! Redirecting...");
+        const next = searchParams?.get("next") || "/";
+        setTimeout(() => {
+          redirectWithRole(supabase, next);
+        }, 300);
+      } catch (err) {
+        console.error("Auth callback error:", err);
+        // Last resort - check if we have a session anyway
+        try {
+          const supabase = supabaseBrowser();
+          const {
+            data: { session: finalSession },
+          } = await supabase.auth.getSession();
+
+          if (finalSession) {
+            const next = searchParams?.get("next") || "/";
+            redirectWithRole(supabase, next);
+            return;
+          }
+        } catch {
+          // ignore
+        }
+
+        setMsg("Something went wrong");
+        setTimeout(() => router.replace("/login"), 2000);
       }
-
-      // 2. EXCHANGE CODE FOR SESSION (this is the missing piece)
-      const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(
-        window.location.href
-      );
-
-      if (exchangeError) {
-        console.error("exchangeCodeForSession error:", exchangeError);
-        setMsg("Could not complete verification. Redirecting to login…");
-        setTimeout(() => router.replace("/login"), 2500);
-        return;
-      }
-
-      // 3. After exchange, we should now have a session
-      const { data: sessionData } = await supabase.auth.getSession();
-      const hasSession = Boolean(sessionData?.session);
-
-      const requestedNext = searchParams.get("next") || "/";
-      const finalNext =
-        requestedNext === "/login" && hasSession ? "/" : requestedNext;
-
-      setMsg("Verification complete. Redirecting…");
-      setTimeout(() => router.replace(finalNext), 1500);
     };
 
     handle();
-  }, [router, searchParams]);
+  }, [router, searchParams]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-black text-white">
-      <div className="p-6 rounded-xl border border-zinc-800 bg-zinc-900/70 text-center">
+      <div className="p-6 rounded-xl border border-zinc-800 bg-zinc-900/70 text-center space-y-4">
+        <div className="flex justify-center">
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-t-2 border-[#e78a53]"></div>
+        </div>
         <p className="text-zinc-300 text-lg">{msg}</p>
       </div>
     </div>

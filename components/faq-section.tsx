@@ -14,26 +14,36 @@ export function FAQSection() {
 
   const faqs = [
     {
-      question: "How accurate is the deepfake detection?",
+      question: "How accurate is Detectify’s deepfake detection?",
       answer:
-        "Our AI-powered detection system achieves over 98% accuracy for video and image deepfakes. The system continuously learns from new deepfake techniques, improving accuracy over time through advanced machine learning algorithms.",
+        "Detectify currently achieves above 90% accuracy on most image and video deepfake samples. While the system performs strongly on common manipulation techniques, new and highly sophisticated deepfakes may be harder to identify accurately. We continuously improve the model as new deepfake methods emerge.",
     },
     {
       question: "What types of media can Detectify analyze?",
       answer:
-        "Detectify can analyze videos and images. Our multi-modal analysis examines facial movements, lighting inconsistencies, and digital artifacts to detect manipulation across all major media formats including MP4, AVI, JPG, PNG, and more.",
+        "Detectify supports analysis for both images and short videos. It examines facial expressions, blinking patterns, lighting inconsistencies, compression artifacts, and other digital traces to flag possible manipulation. Supported formats include images (JPG, PNG) and videos (MP4, MOV).",
     },
     {
-      question: "How fast is the detection process?",
+      question: "How fast does Detectify process a scan?",
       answer:
-        "Real-time detection typically takes 2-5 seconds for images and 10-30 seconds for short videos. Enterprise plans include priority processing for even faster results with dedicated server resources.",
+        "Image scans typically take 2–5 seconds, while short video scans may take around 10–30 seconds depending on file size and complexity. Processing times may vary based on your device and available network speed.",
     },
     {
-      question: "Can I use Detectify for legal purposes?",
+      question: "Is Detectify suitable for legal or official investigations?",
       answer:
-        "Yes! Our Professional and Enterprise plans include detailed forensic reports with evidence trails that are admissible in legal proceedings. The reports document all detection methods, confidence scores, and technical findings.",
+        "Detectify is designed primarily for learning, awareness, and personal verification. While results can offer useful insights, they are not intended to serve as official forensic evidence. For legal cases, we recommend consulting digital forensics professionals.",
     },
-  ]
+    {
+      question: "Can Detectify guarantee 100% accuracy?",
+      answer:
+        "No deepfake detection tool can guarantee perfect accuracy. Deepfake techniques evolve rapidly, and some high-quality manipulations may appear very realistic. Detectify aims to help users identify suspicious content, but final judgement should always involve human review.",
+    },
+    {
+      question: "Is Detectify safe and private to use?",
+      answer:
+        "Yes. Uploaded images and videos are processed securely and are not stored or shared. Media is used solely for the purpose of generating a detection result and is deleted immediately after scanning.",
+    },
+  ];
 
   return (
     <section id="faq" className="relative overflow-hidden pb-24 pt-24">

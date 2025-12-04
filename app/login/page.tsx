@@ -11,8 +11,6 @@ import { Label } from "@/components/ui/label";
 import { Shield } from "lucide-react";
 import { supabaseBrowser } from "@/lib/supabase/client";
 
-const supabase = supabaseBrowser();
-
 export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -25,23 +23,50 @@ export default function LoginPage() {
   const [oauthLoading, setOauthLoading] = useState<"google" | "github" | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
 
-  // If already signed in, bounce to home (or redirectedFrom)
-  useEffect(() => {
-    let mounted = true;
-    (async () => {
-      const { data } = await supabase.auth.getSession();
-      if (!mounted) return;
-      if (data.session) {
-        const safeTarget =
-          redirectedFrom && redirectedFrom.startsWith("/") ? redirectedFrom : "/";
-        router.replace(safeTarget);
-        router.refresh();
+  // If already signed in, redirect appropriately
+useEffect(() => {
+  let mounted = true;
+
+  (async () => {
+    const supabase = supabaseBrowser();
+    const { data } = await supabase.auth.getSession();
+
+    if (!mounted) return;
+
+    if (data.session) {
+      let target = "/";
+
+      // If we were sent here from somewhere (like /admin), honour that
+      if (redirectedFrom && redirectedFrom.startsWith("/")) {
+        target = redirectedFrom;
+      } else {
+        // Otherwise, decide based on role
+        const { data: userData } = await supabase.auth.getUser();
+
+        if (userData.user) {
+          const { data: profile } = await supabase
+            .from("profiles")        // 👈 your table
+            .select("role")
+            .eq("id", userData.user.id)
+            .single();
+
+          if (profile?.role === "admin") {
+            target = "/admin";
+          } else {
+            target = "/";
+          }
+        }
       }
-    })();
-    return () => {
-      mounted = false;
-    };
-  }, [router, redirectedFrom]);
+
+      router.replace(target);
+    }
+  })();
+
+  return () => {
+    mounted = false;
+  };
+}, [router, redirectedFrom]);
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,10 +74,10 @@ export default function LoginPage() {
     setFormError(null);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const supabase = supabaseBrowser();
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
-        // (Optional) You can set session persist behavior in Supabase dashboard.
       });
 
       if (error) {
@@ -66,36 +91,55 @@ export default function LoginPage() {
         } else {
           setFormError(error.message || "Login failed. Please try again.");
         }
+        setIsLoading(false);
         return;
       }
 
-      const safeTarget =
-        redirectedFrom && redirectedFrom.startsWith("/") ? redirectedFrom : "/";
-      router.replace(safeTarget);
-      router.refresh();
+      // Wait for cookies
+      await new Promise((resolve) => setTimeout(resolve, 200));
+
+      const { data: userData } = await supabase.auth.getUser();
+
+      let target = "/";
+
+      if (redirectedFrom && redirectedFrom.startsWith("/")) {
+        target = redirectedFrom;
+      } else if (userData.user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", userData.user.id)
+          .single();
+
+        if (profile?.role === "admin") {
+          target = "/admin";
+        } else {
+          target = "/";
+        }
+      }
+
+      window.location.href = target;
     } catch (err: any) {
       setFormError(err?.message || "Something went wrong signing in.");
-    } finally {
       setIsLoading(false);
     }
   };
 
-  // --- OAuth login (Google / GitHub) ---
+
   const handleOAuth = async (provider: "google" | "github") => {
     setFormError(null);
     setOauthLoading(provider);
     try {
+      const supabase = supabaseBrowser();
       await supabase.auth.signInWithOAuth({
         provider,
         options: {
-          // Your /auth/callback page will clean the URL and route to `next`
           redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(
             redirectedFrom && redirectedFrom.startsWith("/") ? redirectedFrom : "/"
           )}`,
-          queryParams: { prompt: "consent" }, // optional but handy during dev
+          queryParams: { prompt: "consent" },
         },
       });
-      // Redirect happens automatically
     } catch (err: any) {
       setFormError(err?.message || "Unable to start OAuth sign-in.");
       setOauthLoading(null);

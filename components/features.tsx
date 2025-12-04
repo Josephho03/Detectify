@@ -1,21 +1,30 @@
-"use client"
+// Features.tsx
 
-import { useTheme } from "next-themes"
-import ScrambleHover from "./ui/scramble"
-import { motion, useInView } from "framer-motion"
-import { useRef, useState } from "react"
-import { geist } from "@/lib/fonts"
-import { cn } from "@/lib/utils"
-import { Shield, Zap, BarChart3, GraduationCap, Video, ImageIcon } from "lucide-react"
+"use client";
+
+import { useTheme } from "next-themes";
+import ScrambleHover from "./ui/scramble";
+import { motion, useInView } from "framer-motion";
+import { useRef, useState } from "react";
+import { geist } from "@/lib/fonts";
+import { cn } from "@/lib/utils";
+import {
+  Shield,
+  Zap,
+  BarChart3,
+  GraduationCap,
+  Video,
+  ImageIcon,
+} from "lucide-react";
 
 export default function Features() {
-  const ref = useRef(null)
-  const isInView = useInView(ref, { once: true, amount: 0.3 })
-  const { theme } = useTheme()
-  const [isHovering, setIsHovering] = useState(false)
-  const [isCliHovering, setIsCliHovering] = useState(false)
-  const [isFeature3Hovering, setIsFeature3Hovering] = useState(false)
-  const [isFeature4Hovering, setIsFeature4Hovering] = useState(false)
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true, amount: 0.3 });
+  const { theme } = useTheme();
+  const [isHovering, setIsHovering] = useState(false);
+  const [isCliHovering, setIsCliHovering] = useState(false);
+  const [isFeature3Hovering, setIsFeature3Hovering] = useState(false);
+  const [isFeature4Hovering, setIsFeature4Hovering] = useState(false);
 
   return (
     <motion.section
@@ -33,7 +42,7 @@ export default function Features() {
         initial={{ opacity: 0, y: 50 }}
         animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 50 }}
         transition={{ duration: 0.5, delay: 0 }}
-        className="container mx-auto flex flex-col items-center gap-6 sm:gap-12"
+        className="mx-auto flex flex-col items-center gap-6 sm:gap-12 px-4 max-w-5xl lg:max-w-6xl"
       >
         <h2
           className={cn(
@@ -43,16 +52,18 @@ export default function Features() {
         >
           Main Features
         </h2>
-        <div className="cursor-none">
-          <div className="grid grid-cols-12 gap-4 justify-center">
+        <div className="cursor-none w-full">
+          {/* REVISION: Changed grid-cols-12 to grid and simplified column spans for better mobile flow */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 justify-center">
+            {/* Feature 1: Deepfake Detection */}
             <motion.div
-              className="group border-primary/40 text-card-foreground relative col-span-12 flex flex-col overflow-hidden rounded-xl border-2 p-6 shadow-xl transition-all ease-in-out md:col-span-6 xl:col-span-6 xl:col-start-2"
+              className="group border-primary/40 text-card-foreground relative col-span-1 flex flex-col overflow-hidden rounded-xl border-2 p-4 sm:p-6 shadow-xl transition-all ease-in-out" // REVISION: Reduced base padding to p-4
               onMouseEnter={() => setIsCliHovering(true)}
               onMouseLeave={() => setIsCliHovering(false)}
               ref={ref}
               initial={{ opacity: 0, y: 50 }}
               animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 50 }}
-              transition={{ duration: 0.5, delay: 0.5 }}
+              transition={{ duration: 0.5, delay: 0.3 }} // Increased delay slightly to stagger
               whileHover={{
                 scale: 1.02,
                 borderColor: "rgba(234, 88, 12, 0.6)",
@@ -60,57 +71,83 @@ export default function Features() {
               }}
               style={{ transition: "all 0s ease-in-out" }}
             >
-              <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-3">
                 <div className="flex items-center gap-3">
                   <div className="p-2 rounded-lg bg-primary/10">
                     <Shield className="h-6 w-6 text-primary" />
                   </div>
-                  <h3 className="text-2xl leading-none font-semibold tracking-tight">
+                  {/* REVISION: Reduced font size on mobile */}
+                  <h3 className="text-xl sm:text-2xl leading-none font-semibold tracking-tight">
                     Deepfake Image and Video Detection
                   </h3>
                 </div>
-                <div className="text-md text-muted-foreground flex flex-col gap-2 text-sm">
-                  <p className="max-w-[460px]">
-                    Advanced computer vision algorithms analyze facial features, lighting patterns, and pixel-level
-                    inconsistencies to identify manipulated media with high accuracy.
+                {/* REVISION: Reduced font size on mobile */}
+                <div className="text-xs sm:text-sm text-muted-foreground flex flex-col gap-1 sm:gap-2">
+                  <p className="text-justify">
+                    Advanced computer vision algorithms analyze facial features,
+                    lighting patterns, and pixel-level inconsistencies to identify
+                    manipulated media with high accuracy.
                   </p>
                 </div>
               </div>
-              <div className="flex grow items-center justify-center select-none relative min-h-[300px] p-8">
-                <div className="relative flex items-center justify-center gap-12">
+              {/* REVISION: Reduced min-height and padding for mobile */}
+              {/* Visual block of Feature 1 */}
+              <div className="flex grow items-center justify-center select-none relative py-6 sm:py-8">
+                <div className="relative flex flex-col md:flex-row items-center justify-center gap-4 sm:gap-6 md:gap-10 w-full">
                   {/* Left side - Media types */}
-                  <div className="flex flex-col gap-4">
+                  <div className="flex flex-row md:flex-col gap-3 sm:gap-4 w-full md:w-auto justify-center md:justify-start">
                     <motion.div
-                      className="flex items-center gap-3 p-4 rounded-xl bg-card border border-border"
-                      whileHover={{ scale: 1.05, borderColor: "rgba(234, 88, 12, 0.4)" }}
+                      className="flex items-center gap-3 px-4 py-3 rounded-xl bg-card border border-border w-full max-w-[200px] md:max-w-none"
+                      whileHover={{
+                        scale: 1.05,
+                        borderColor: "rgba(234, 88, 12, 0.4)",
+                      }}
                       animate={isCliHovering ? { x: [0, -10, 0] } : {}}
-                      transition={{ duration: 2, repeat: isCliHovering ? Number.POSITIVE_INFINITY : 0 }}
+                      transition={{
+                        duration: 2,
+                        repeat: isCliHovering ? Number.POSITIVE_INFINITY : 0,
+                      }}
                     >
-                      <Video className="h-6 w-6 text-primary" />
-                      <span className="font-medium">Video</span>
+                      <Video className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+                      <span className="font-medium text-sm sm:text-base">Video</span>
                     </motion.div>
+
                     <motion.div
-                      className="flex items-center gap-3 p-4 rounded-xl bg-card border border-border"
-                      whileHover={{ scale: 1.05, borderColor: "rgba(234, 88, 12, 0.4)" }}
+                      className="flex items-center gap-3 px-4 py-3 rounded-xl bg-card border border-border w-full max-w-[200px] md:max-w-none"
+                      whileHover={{
+                        scale: 1.05,
+                        borderColor: "rgba(234, 88, 12, 0.4)",
+                      }}
                       animate={isCliHovering ? { x: [0, -10, 0] } : {}}
-                      transition={{ duration: 2, delay: 0.2, repeat: isCliHovering ? Number.POSITIVE_INFINITY : 0 }}
+                      transition={{
+                        duration: 2,
+                        delay: 0.2,
+                        repeat: isCliHovering ? Number.POSITIVE_INFINITY : 0,
+                      }}
                     >
-                      <ImageIcon className="h-6 w-6 text-primary" />
-                      <span className="font-medium">Image</span>
+                      <ImageIcon className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+                      <span className="font-medium text-sm sm:text-base">Image</span>
                     </motion.div>
                   </div>
 
                   {/* Center - Shield icon */}
                   <motion.div
-                    className="p-8 rounded-2xl bg-gradient-to-br from-orange-500/20 to-orange-600/10 border-2 border-orange-500/30"
-                    animate={isCliHovering ? { scale: [1, 1.1, 1], rotate: [0, 5, -5, 0] } : {}}
-                    transition={{ duration: 2, repeat: isCliHovering ? Number.POSITIVE_INFINITY : 0 }}
+                    className="p-5 sm:p-6 md:p-8 rounded-xl md:rounded-2xl bg-gradient-to-br from-orange-500/20 to-orange-600/10 border-2 border-orange-500/30"
+                    animate={
+                      isCliHovering
+                        ? { scale: [1, 1.1, 1], rotate: [0, 5, -5, 0] }
+                        : {}
+                    }
+                    transition={{
+                      duration: 2,
+                      repeat: isCliHovering ? Number.POSITIVE_INFINITY : 0,
+                    }}
                   >
-                    <Shield className="h-16 w-16 text-primary" />
+                    <Shield className="h-10 w-10 sm:h-16 sm:w-16 text-primary" />
                   </motion.div>
 
                   {/* Right side - Detection results */}
-                  <div className="flex flex-col gap-4">
+                  <div className="flex flex-col gap-3 sm:gap-4 w-full md:w-auto max-w-[260px]">
                     {[
                       { label: "Authentic", color: "text-green-500", icon: "✓" },
                       { label: "Suspicious", color: "text-yellow-500", icon: "⚠" },
@@ -118,8 +155,11 @@ export default function Features() {
                     ].map((item, index) => (
                       <motion.div
                         key={index}
-                        className="flex items-center gap-3 p-4 rounded-xl bg-card border border-border min-w-[140px]"
-                        whileHover={{ scale: 1.05, borderColor: "rgba(234, 88, 12, 0.4)" }}
+                        className="flex items-center gap-3 px-4 py-3 rounded-xl bg-card border border-border w-full"
+                        whileHover={{
+                          scale: 1.05,
+                          borderColor: "rgba(234, 88, 12, 0.4)",
+                        }}
                         animate={isCliHovering ? { x: [0, 10, 0] } : {}}
                         transition={{
                           duration: 2,
@@ -127,8 +167,12 @@ export default function Features() {
                           repeat: isCliHovering ? Number.POSITIVE_INFINITY : 0,
                         }}
                       >
-                        <span className={`text-xl ${item.color}`}>{item.icon}</span>
-                        <span className="font-medium">{item.label}</span>
+                        <span className={`text-lg sm:text-xl ${item.color}`}>
+                          {item.icon}
+                        </span>
+                        <span className="font-medium text-sm sm:text-base">
+                          {item.label}
+                        </span>
                       </motion.div>
                     ))}
                   </div>
@@ -136,8 +180,9 @@ export default function Features() {
               </div>
             </motion.div>
 
+            {/* Feature 2: Real-Time Analysis */}
             <motion.div
-              className="group border-primary/40 text-card-foreground relative col-span-12 flex flex-col overflow-hidden rounded-xl border-2 p-6 shadow-xl transition-all ease-in-out md:col-span-6 xl:col-span-6 xl:col-start-8"
+              className="group border-primary/40 text-card-foreground relative col-span-1 flex flex-col overflow-hidden rounded-xl border-2 p-4 sm:p-6 shadow-xl transition-all ease-in-out" // REVISION: Reduced base padding
               onMouseEnter={() => setIsHovering(true)}
               onMouseLeave={() => setIsHovering(false)}
               ref={ref}
@@ -151,22 +196,28 @@ export default function Features() {
               }}
               style={{ transition: "all 0s ease-in-out" }}
             >
-              <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-3">
                 <div className="flex items-center gap-3">
                   <div className="p-2 rounded-lg bg-primary/10">
                     <Zap className="h-6 w-6 text-primary" />
                   </div>
-                  <h3 className="text-2xl leading-none font-semibold tracking-tight">Real Time Analysis</h3>
+                  {/* REVISION: Reduced font size on mobile */}
+                  <h3 className="text-xl sm:text-2xl leading-none font-semibold tracking-tight">
+                    Real Time Analysis
+                  </h3>
                 </div>
-                <div className="text-md text-muted-foreground flex flex-col gap-2 text-sm">
-                  <p className="max-w-[460px]">
-                    Process and analyze media in real-time with instant results. Get immediate feedback on uploaded
-                    content with millisecond response times.
+                {/* REVISION: Reduced font size on mobile */}
+                <div className="text-xs sm:text-sm text-muted-foreground flex flex-col gap-1 sm:gap-2">
+                  <p className="text-justify">
+                    Process and analyze media in real-time with instant results.
+                    Get immediate feedback on uploaded content with millisecond
+                    response times.
                   </p>
                 </div>
               </div>
-              <div className="flex min-h-[300px] grow items-center justify-center select-none relative">
-                <h1 className="text-center text-5xl leading-[100%] font-semibold sm:leading-normal lg:text-6xl">
+              {/* REVISION: Reduced min-height and text size for mobile */}
+              <div className="flex min-h-[200px] sm:min-h-[300px] grow items-center justify-center select-none relative">
+                <h1 className="text-5xl sm:text-6xl leading-[100%] font-semibold sm:leading-normal">
                   <span className='bg-background relative inline-block w-fit rounded-md border px-1.5 py-0.5 before:absolute before:top-0 before:left-0 before:z-10 before:h-full before:w-full before:bg-[url("/noise.gif")] before:opacity-[0.09] before:content-[""]'>
                     <ScrambleHover
                       text="Detectify"
@@ -181,19 +232,21 @@ export default function Features() {
                   </span>
                 </h1>
                 <div className="absolute top-1/2 w-full translate-y-20 scale-x-[1.2] opacity-70 transition-all duration-1000 group-hover:translate-y-8 group-hover:opacity-100">
-                  <div className="from-primary/50 to-primary/0 absolute left-1/2 h-[256px] w-[60%] -translate-x-1/2 scale-[2.5] rounded-[50%] bg-radial from-10% to-60% opacity-20 sm:h-[512px] dark:opacity-100"></div>
-                  <div className="from-primary/30 to-primary/0 absolute left-1/2 h-[128px] w-[40%] -translate-x-1/2 scale-200 rounded-[50%] bg-radial from-10% to-60% opacity-20 sm:h-[256px] dark:opacity-100"></div>
+                  <div className="from-primary/50 to-primary/0 absolute left-1/2 h-[128px] w-[60%] -translate-x-1/2 scale-[2.5] rounded-[50%] bg-radial from-10% to-60% opacity-20 sm:h-[256px] dark:opacity-100"></div> {/* REVISION: Reduced height for mobile */}
+                  <div className="from-primary/30 to-primary/0 absolute left-1/2 h-[64px] w-[40%] -translate-x-1/2 scale-200 rounded-[50%] bg-radial from-10% to-60% opacity-20 sm:h-[128px] dark:opacity-100"></div> {/* REVISION: Reduced height for mobile */}
                 </div>
               </div>
             </motion.div>
 
+            {/* Feature 3: Confidence Score Indicator */}
             <motion.div
-              className="group border-primary/40 text-card-foreground relative col-span-12 flex flex-col overflow-hidden rounded-xl border-2 p-6 shadow-xl transition-all ease-in-out md:col-span-6 xl:col-span-6 xl:col-start-2"
+              // REVISION: Removed xl:col-start-2 to allow natural flow below other cards
+              className="group border-primary/40 text-card-foreground relative col-span-1 flex flex-col overflow-hidden rounded-xl border-2 p-4 sm:p-6 shadow-xl transition-all ease-in-out" // REVISION: Reduced base padding
               onMouseEnter={() => setIsFeature3Hovering(true)}
               onMouseLeave={() => setIsFeature3Hovering(false)}
               initial={{ opacity: 0, y: 50 }}
               animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 50 }}
-              transition={{ duration: 0.5, delay: 1.0 }}
+              transition={{ duration: 0.5, delay: 0.7 }}
               whileHover={{
                 scale: 1.02,
                 borderColor: "rgba(234, 88, 12, 0.5)",
@@ -201,35 +254,43 @@ export default function Features() {
               }}
               style={{ transition: "all 0s ease-in-out" }}
             >
-              <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-3">
                 <div className="flex items-center gap-3">
                   <div className="p-2 rounded-lg bg-primary/10">
                     <BarChart3 className="h-6 w-6 text-primary" />
                   </div>
-                  <h3 className="text-2xl leading-none font-semibold tracking-tight">Confidence Score Indicator</h3>
+                  {/* REVISION: Reduced font size on mobile */}
+                  <h3 className="text-xl sm:text-2xl leading-none font-semibold tracking-tight">
+                    Confidence Score Indicator
+                  </h3>
                 </div>
-                <div className="text-md text-muted-foreground flex flex-col gap-2 text-sm">
-                  <p className="max-w-[460px]">
-                    Clear visual indicators showing detection confidence levels with color-coded risk alerts. Understand
-                    the likelihood of manipulation at a glance.
+                {/* REVISION: Reduced font size on mobile */}
+                <div className="text-xs sm:text-sm text-muted-foreground flex flex-col gap-1 sm:gap-2">
+                  <p className="text-justify">
+                    Clear visual indicators showing detection confidence levels
+                    with color-coded risk alerts. Understand the likelihood of
+                    manipulation at a glance.
                   </p>
                 </div>
               </div>
-              <div className="flex grow items-center justify-center select-none relative min-h-[300px] p-4">
-                <div className="w-full max-w-md space-y-6">
+              {/* REVISION: Reduced min-height and padding for mobile */}
+              <div className="flex grow items-center justify-center select-none relative min-h-[200px] sm:min-h-[300px] p-2 sm:p-4">
+                <div className="w-full max-w-sm space-y-4 sm:space-y-6"> {/* REVISION: Reduced max-width and space-y */}
                   <div className="text-center">
                     <motion.div
-                      className="text-6xl font-bold bg-gradient-to-r from-orange-500 to-orange-600 bg-clip-text text-transparent"
+                      className="text-5xl sm:text-6xl font-bold bg-gradient-to-r from-orange-500 to-orange-600 bg-clip-text text-transparent" // REVISION: Reduced text size on mobile
                       animate={isFeature3Hovering ? { scale: [1, 1.1, 1] } : { scale: 1 }}
                       transition={{ duration: 0.6 }}
                     >
                       87.3%
                     </motion.div>
-                    <p className="text-sm text-muted-foreground mt-2">Confidence Score</p>
+                    <p className="text-xs sm:text-sm text-muted-foreground mt-1 sm:mt-2">
+                      Confidence Score
+                    </p>
                   </div>
 
                   <div className="space-y-2">
-                    <div className="h-4 bg-muted rounded-full overflow-hidden">
+                    <div className="h-3 sm:h-4 bg-muted rounded-full overflow-hidden"> {/* REVISION: Reduced height */}
                       <motion.div
                         className="h-full bg-gradient-to-r from-orange-500 to-orange-600"
                         initial={{ width: "0%" }}
@@ -243,7 +304,7 @@ export default function Features() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-3 gap-2 sm:gap-3"> {/* REVISION: Reduced gap */}
                     {[
                       { label: "Authentic", color: "bg-green-500", value: "12.7%" },
                       { label: "Suspicious", color: "bg-yellow-500", value: "0%" },
@@ -251,13 +312,17 @@ export default function Features() {
                     ].map((item, index) => (
                       <motion.div
                         key={index}
-                        className="p-3 rounded-lg border border-border bg-card text-center"
+                        className="p-2 sm:p-3 rounded-lg border border-border bg-card text-center" // REVISION: Reduced padding
                         whileHover={{ scale: 1.05 }}
-                        animate={isFeature3Hovering && index === 2 ? { borderColor: "rgba(234, 88, 12, 0.6)" } : {}}
+                        animate={
+                          isFeature3Hovering && index === 2
+                            ? { borderColor: "rgba(234, 88, 12, 0.6)" }
+                            : {}
+                        }
                       >
-                        <div className={`w-3 h-3 ${item.color} rounded-full mx-auto mb-2`} />
+                        <div className={`w-2 h-2 sm:w-3 sm:h-3 ${item.color} rounded-full mx-auto mb-1 sm:mb-2`} /> {/* REVISION: Reduced size and margin */}
                         <div className="text-xs font-medium">{item.label}</div>
-                        <div className="text-sm font-bold mt-1">{item.value}</div>
+                        <div className="text-sm font-bold mt-0.5 sm:mt-1">{item.value}</div> {/* REVISION: Reduced margin */}
                       </motion.div>
                     ))}
                   </div>
@@ -265,13 +330,15 @@ export default function Features() {
               </div>
             </motion.div>
 
+            {/* Feature 4: Deepfake Awareness & Education */}
             <motion.div
-              className="group border-primary/40 text-card-foreground relative col-span-12 flex flex-col overflow-hidden rounded-xl border-2 p-6 shadow-xl transition-all ease-in-out md:col-span-6 xl:col-span-6 xl:col-start-8"
+              // REVISION: Removed xl:col-start-8 to allow natural flow below other cards
+              className="group border-primary/40 text-card-foreground relative col-span-1 flex flex-col overflow-hidden rounded-xl border-2 p-4 sm:p-6 shadow-xl transition-all ease-in-out" // REVISION: Reduced base padding
               onMouseEnter={() => setIsFeature4Hovering(true)}
               onMouseLeave={() => setIsFeature4Hovering(false)}
               initial={{ opacity: 0, y: 50 }}
               animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 50 }}
-              transition={{ duration: 0.5, delay: 1.0 }}
+              transition={{ duration: 0.5, delay: 0.9 }}
               whileHover={{
                 scale: 1.02,
                 boxShadow: "0 20px 40px rgba(234, 88, 12, 0.3)",
@@ -279,22 +346,28 @@ export default function Features() {
               }}
               style={{ transition: "all 0s ease-in-out" }}
             >
-              <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-3">
                 <div className="flex items-center gap-3">
                   <div className="p-2 rounded-lg bg-primary/10">
                     <GraduationCap className="h-6 w-6 text-primary" />
                   </div>
-                  <h3 className="text-2xl leading-none font-semibold tracking-tight">Deepfake Awareness & Education</h3>
+                  {/* REVISION: Reduced font size on mobile */}
+                  <h3 className="text-xl sm:text-2xl leading-none font-semibold tracking-tight">
+                    Deepfake Awareness & Education
+                  </h3>
                 </div>
-                <div className="text-md text-muted-foreground flex flex-col gap-2 text-sm">
-                  <p className="max-w-[460px]">
-                    Educational feedback explaining why content is flagged with examples of common manipulation risks
-                    related to scams, impersonation, and misinformation.
+                {/* REVISION: Reduced font size on mobile */}
+                <div className="text-xs sm:text-sm text-muted-foreground flex flex-col gap-1 sm:gap-2">
+                  <p className="text-justify ">
+                    Educational feedback explaining why content is flagged with
+                    examples of common manipulation risks related to scams,
+                    impersonation, and misinformation.
                   </p>
                 </div>
               </div>
-              <div className="flex grow items-center justify-center select-none relative min-h-[300px] p-4">
-                <div className="w-full max-w-md space-y-4">
+              {/* REVISION: Reduced min-height and padding for mobile */}
+              <div className="flex grow items-center justify-center select-none relative min-h-[200px] sm:min-h-[300px] p-2 sm:p-4">
+                <div className="w-full max-w-sm space-y-3 sm:space-y-4"> {/* REVISION: Reduced max-width and space-y */}
                   {[
                     {
                       icon: "🎭",
@@ -314,17 +387,21 @@ export default function Features() {
                   ].map((item, index) => (
                     <motion.div
                       key={index}
-                      className="p-4 rounded-lg border border-border bg-card hover:border-primary/50 transition-all"
+                      className="p-3 sm:p-4 rounded-lg border border-border bg-card hover:border-primary/50 transition-all" // REVISION: Reduced padding
                       initial={{ opacity: 1, x: 0 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ duration: 0.4, delay: index * 0.1 }}
                       whileHover={{ scale: 1.02 }}
                     >
                       <div className="flex items-start gap-3">
-                        <div className="text-2xl">{item.icon}</div>
+                        <div className="text-xl sm:text-2xl">{item.icon}</div> {/* REVISION: Reduced text size */}
                         <div>
-                          <h4 className="font-semibold text-sm mb-1">{item.title}</h4>
-                          <p className="text-xs text-muted-foreground">{item.desc}</p>
+                          <h4 className="font-semibold text-sm mb-0.5 sm:mb-1">
+                            {item.title}
+                          </h4> {/* REVISION: Reduced margin */}
+                          <p className="text-xs text-muted-foreground">
+                            {item.desc}
+                          </p>
                         </div>
                       </div>
                     </motion.div>
@@ -336,5 +413,5 @@ export default function Features() {
         </div>
       </motion.div>
     </motion.section>
-  )
+  );
 }

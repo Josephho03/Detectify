@@ -152,12 +152,12 @@ export default function Hero() {
                 <div className="text-sm text-muted-foreground mt-1">Detection Accuracy</div>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold text-foreground">&lt;2s</div>
+                <div className="text-3xl font-bold text-foreground">&lt;10s</div>
                 <div className="text-sm text-muted-foreground mt-1">Analysis Time</div>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold text-foreground">500K+</div>
-                <div className="text-sm text-muted-foreground mt-1">Scans Protected</div>
+                <div className="text-3xl font-bold text-foreground">100K+</div>
+                <div className="text-sm text-muted-foreground mt-1">Training Samples</div>
               </div>
             </motion.div>
           </div>

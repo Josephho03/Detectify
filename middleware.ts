@@ -38,9 +38,16 @@ export async function middleware(req: NextRequest) {
       url.searchParams.set("redirectedFrom", req.nextUrl.pathname);
       return NextResponse.redirect(url);
     }
+
+
+    const userId = session.user.id;
+    await supabase
+      .from("profiles")
+      .update({ updated_at: new Date().toISOString() })
+      .eq("id", userId);
   }
 
   return res;
 }
 
-export const config = { matcher: ["/detect/:path*"] };
+export const config = { matcher: ["/((?!_next|static|favicon.ico).*)"] };

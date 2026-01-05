@@ -52,11 +52,11 @@ export default function AccountPage() {
   // load user + profile
   useEffect(() => {
     (async () => {
-        try {
+      try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) {
-            window.location.href = "/login";
-            return;
+          window.location.href = "/login";
+          return;
         }
 
         setUserId(user.id);
@@ -66,46 +66,45 @@ export default function AccountPage() {
 
         // 1) Try profiles first
         const { data: profile } = await supabase
-            .from("profiles")
-            .select("name,bio,email")
-            .eq("id", user.id)
-            .single();
+          .from("profiles")
+          .select("name,bio,email")
+          .eq("id", user.id)
+          .single();
 
-        // 2) If profile missing name, fall back to user_metadata (covers email signup & OAuth)
+        // 2) If profile missing name, fall back to user_metadata
         const meta = user.user_metadata || {};
         const metaName =
-            meta.name ||
-            meta.full_name ||
-            meta.user_name ||
-            meta.user ||
-            ""; // providers vary on the key they use
+          meta.name ||
+          meta.full_name ||
+          meta.user_name ||
+          meta.user ||
+          ""; 
 
         // 3) Final fallback: derive from email (before @)
         const emailName = (user.email || "").split("@")[0];
 
         const initialName = profile?.name ?? (metaName || emailName);
 
-
         if (profile?.name) setName(profile.name);
         else setName(initialName);
 
         if (profile?.bio) setBio(profile.bio);
 
-        // 4) If there was no profile row yet, or it had no name, upsert once so next loads are instant
+        // 4) If there was no profile row yet, upsert
         if (!profile || !profile.name) {
-            await supabase.from("profiles").upsert({
+          await supabase.from("profiles").upsert({
             id: user.id,
             email: user.email,
             name: initialName,
             bio: profile?.bio ?? ""
-            }, { onConflict: "id" });
+          }, { onConflict: "id" });
         }
-        } finally {
+      } finally {
         setLoading(false);
-        }
+      }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+  }, []);
 
   // save profile
   const save = async () => {
@@ -113,22 +112,22 @@ export default function AccountPage() {
     setSaving(true);
 
     const { error } = await supabase
-        .from("profiles")
-        .upsert({ id: userId, name: name.trim(), bio: bio.trim(), email })
-        .eq("id", userId);
+      .from("profiles")
+      .upsert({ id: userId, name: name.trim(), bio: bio.trim(), email })
+      .eq("id", userId);
 
     setSaving(false);
 
     if (error) {
-        const friendly =
+      const friendly =
         error.code === "42P01"
-            ? "Profiles table missing. Create `public.profiles` in Supabase."
-            : error.message;
-        setToast({ type: "err", msg: friendly });
-        return;
+          ? "Profiles table missing. Create `public.profiles` in Supabase."
+          : error.message;
+      setToast({ type: "err", msg: friendly });
+      return;
     }
     setToast({ type: "ok", msg: "Profile saved" });
-    };
+  };
 
 
   // change password
@@ -147,7 +146,7 @@ export default function AccountPage() {
     setConfirmPw("");
   };
 
-  // resend verification (visible if not verified)
+  // resend verification
   const resendVerification = async () => {
     const { error } = await supabase.auth.resend({ type: "signup", email });
     setToast(
@@ -163,16 +162,16 @@ export default function AccountPage() {
   };
 
   return (
-    <div className="min-h-screen bg-black relative overflow-hidden">
-      {/* background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-zinc-900 via-black to-zinc-900" />
+    <div className="min-h-screen bg-gray-50 dark:bg-black relative overflow-hidden transition-colors duration-300">
+      {/* background gradients */}
+      <div className="absolute inset-0 bg-gradient-to-br from-white via-gray-50 to-gray-100 dark:from-zinc-900 dark:via-black dark:to-zinc-900 transition-colors duration-300" />
       <div className="absolute -top-24 -right-16 w-[28rem] h-[28rem] rounded-full bg-[#e78a53]/10 blur-3xl" />
       <div className="absolute -bottom-24 -left-16 w-[34rem] h-[34rem] rounded-full bg-[#e78a53]/5 blur-3xl" />
 
       {/* Back to Home */}
       <Link
         href="/"
-        className="absolute top-6 left-6 z-20 text-zinc-400 hover:text-[#e78a53] transition-colors duration-200 flex items-center gap-2"
+        className="absolute top-6 left-6 z-20 text-gray-500 hover:text-[#e78a53] dark:text-zinc-400 dark:hover:text-[#e78a53] transition-colors duration-200 flex items-center gap-2"
       >
         <ArrowLeft className="w-5 h-5" />
         <span>Back to Home</span>
@@ -180,8 +179,8 @@ export default function AccountPage() {
 
       <div className="relative z-10 max-w-3xl mx-auto px-4 py-16">
         {/* header */}
-        <div className="mb-8 flex items-center gap-3 text-white">
-          <div className="h-10 w-10 rounded-full bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center">
+        <div className="mb-8 flex items-center gap-3 text-gray-900 dark:text-white">
+          <div className="h-10 w-10 rounded-full bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center text-white shadow-lg shadow-orange-500/20">
             <Shield className="h-6 w-6" />
           </div>
           <h1 className="text-2xl font-bold">Account</h1>
@@ -191,26 +190,26 @@ export default function AccountPage() {
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.45 }}
-          className="rounded-2xl border border-zinc-800 bg-zinc-900/50 backdrop-blur-xl"
+          className="rounded-2xl border border-gray-200 dark:border-zinc-800 bg-white/50 dark:bg-zinc-900/50 backdrop-blur-xl shadow-sm"
         >
           {/* top stripe */}
-          <div className="p-6 border-b border-zinc-800">
+          <div className="p-6 border-b border-gray-200 dark:border-zinc-800">
             <div className="flex flex-wrap items-center gap-3">
-              <div className="h-12 w-12 rounded-full bg-zinc-800 flex items-center justify-center">
-                <span className="text-lg font-semibold text-white">
+              <div className="h-12 w-12 rounded-full bg-gray-100 dark:bg-zinc-800 flex items-center justify-center border border-gray-200 dark:border-zinc-700">
+                <span className="text-lg font-semibold text-gray-900 dark:text-white">
                   {name?.trim()?.[0]?.toUpperCase() || (email ? email[0].toUpperCase() : "U")}
                 </span>
               </div>
               <div className="flex-1 min-w-[220px]">
-                <div className="text-white font-medium">{name || "Your name"}</div>
+                <div className="text-gray-900 dark:text-white font-medium">{name || "Your name"}</div>
                 <div className="flex items-center gap-2 text-sm">
-                  <span className="text-zinc-400">{email || "—"}</span>
+                  <span className="text-gray-500 dark:text-zinc-400">{email || "—"}</span>
                   {emailVerified ? (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 text-emerald-400 px-2 py-0.5 text-[11px]">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 text-[11px] font-medium border border-emerald-500/20">
                       <MailCheck className="h-3.5 w-3.5" /> verified
                     </span>
                   ) : (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 text-amber-400 px-2 py-0.5 text-[11px]">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 px-2 py-0.5 text-[11px] font-medium border border-amber-500/20">
                       <MailWarning className="h-3.5 w-3.5" /> not verified
                     </span>
                   )}
@@ -221,7 +220,7 @@ export default function AccountPage() {
                 <Button
                   variant="outline"
                   onClick={resendVerification}
-                  className="border-zinc-700 text-zinc-200 hover:bg-zinc-800"
+                  className="border-gray-200 dark:border-zinc-700 text-gray-700 dark:text-zinc-200 hover:bg-gray-100 dark:hover:bg-zinc-800"
                 >
                   Resend verification
                 </Button>
@@ -232,30 +231,30 @@ export default function AccountPage() {
           {/* profile form */}
           <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="col-span-1 md:col-span-2">
-              <label className="block text-xs uppercase tracking-wide text-zinc-400 mb-2">
+              <label className="block text-xs uppercase tracking-wide text-gray-500 dark:text-zinc-400 mb-2 font-medium">
                 Email
               </label>
               <Input
                 value={email}
                 disabled
-                className="bg-zinc-800/50 border-zinc-700 text-white placeholder:text-zinc-500"
+                className="bg-gray-100 dark:bg-zinc-800/50 border-gray-200 dark:border-zinc-700 text-gray-500 dark:text-zinc-400 cursor-not-allowed"
               />
             </div>
 
             <div>
-              <label className="block text-xs uppercase tracking-wide text-zinc-400 mb-2">
+              <label className="block text-xs uppercase tracking-wide text-gray-500 dark:text-zinc-400 mb-2 font-medium">
                 Full name
               </label>
               <Input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Enter your name"
-                className="bg-zinc-800/50 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-[#e78a53] focus:ring-[#e78a53]/20"
+                className="bg-white dark:bg-zinc-800/50 border-gray-200 dark:border-zinc-700 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-zinc-500 focus:border-[#e78a53] focus:ring-[#e78a53]/20"
               />
             </div>
 
             <div>
-              <label className="block text-xs uppercase tracking-wide text-zinc-400 mb-2">
+              <label className="block text-xs uppercase tracking-wide text-gray-500 dark:text-zinc-400 mb-2 font-medium">
                 Bio
               </label>
               <textarea
@@ -263,7 +262,7 @@ export default function AccountPage() {
                 onChange={(e) => setBio(e.target.value)}
                 rows={4}
                 placeholder="Tell us a bit about yourself"
-                className="w-full rounded-md bg-zinc-800/50 border border-zinc-700 text-white placeholder:text-zinc-500 px-3 py-2 focus:outline-none focus:border-[#e78a53]"
+                className="w-full rounded-md bg-white dark:bg-zinc-800/50 border border-gray-200 dark:border-zinc-700 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-zinc-500 px-3 py-2 text-sm focus:outline-none focus:border-[#e78a53] focus:ring-2 focus:ring-[#e78a53]/20 transition-all"
               />
             </div>
 
@@ -271,7 +270,7 @@ export default function AccountPage() {
               <Button
                 onClick={save}
                 disabled={saving || !name.trim()}
-                className="bg-[#e78a53] hover:bg-[#e78a53]/90 text-white min-w-[130px] inline-flex items-center gap-2"
+                className="bg-[#e78a53] hover:bg-[#e78a53]/90 text-white min-w-[130px] inline-flex items-center gap-2 border-none shadow-md shadow-orange-500/20"
               >
                 <Save className="h-4 w-4" />
                 {saving ? "Saving…" : "Save changes"}
@@ -280,7 +279,7 @@ export default function AccountPage() {
               <Button
                 variant="outline"
                 onClick={logout}
-                className="border-zinc-700 text-zinc-200 hover:bg-zinc-800 inline-flex items-center gap-2"
+                className="border-gray-200 dark:border-zinc-700 text-gray-700 dark:text-zinc-200 hover:bg-gray-100 dark:hover:bg-zinc-800 inline-flex items-center gap-2"
               >
                 <LogOut className="h-4 w-4" />
                 Log out
@@ -291,15 +290,15 @@ export default function AccountPage() {
           {/* change password (only for email identity) */}
           {hasEmailIdentity && (
             <div className="px-6 pb-6">
-              <div className="mt-2 pt-6 border-t border-zinc-800">
-                <h2 className="text-white font-medium mb-2">Change password</h2>
-                <p className="text-sm text-zinc-400 mb-4">
+              <div className="mt-2 pt-6 border-t border-gray-200 dark:border-zinc-800">
+                <h2 className="text-gray-900 dark:text-white font-medium mb-2">Change password</h2>
+                <p className="text-sm text-gray-500 dark:text-zinc-400 mb-4">
                   This is available for accounts created with email & password.
                 </p>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="md:col-span-1">
-                    <label className="block text-xs uppercase tracking-wide text-zinc-400 mb-2">
+                    <label className="block text-xs uppercase tracking-wide text-gray-500 dark:text-zinc-400 mb-2 font-medium">
                       New password
                     </label>
                     <Input
@@ -307,29 +306,29 @@ export default function AccountPage() {
                       value={newPw}
                       onChange={(e) => setNewPw(e.target.value)}
                       placeholder="Enter a new password"
-                      className="bg-zinc-800/50 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-[#e78a53] focus:ring-[#e78a53]/20"
+                      className="bg-white dark:bg-zinc-800/50 border-gray-200 dark:border-zinc-700 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-zinc-500 focus:border-[#e78a53] focus:ring-[#e78a53]/20"
                       autoComplete="new-password"
                     />
 
                     {/* strength */}
                     <div className="mt-2">
-                      <div className="h-2 w-full bg-zinc-800 rounded-full overflow-hidden">
+                      <div className="h-2 w-full bg-gray-200 dark:bg-zinc-800 rounded-full overflow-hidden">
                         <div
                           className={`h-2 ${barColor(score)} transition-all duration-300`}
                           style={{ width: `${(score / 5) * 100}%` }}
                         />
                       </div>
                       <div className="mt-2 flex items-center justify-between text-xs">
-                        <span className="text-zinc-400">Strength</span>
+                        <span className="text-gray-500 dark:text-zinc-400">Strength</span>
                         <span
                           className={`font-medium ${
                             score <= 2
-                              ? "text-red-400"
+                              ? "text-red-500 dark:text-red-400"
                               : score === 3
-                              ? "text-amber-400"
+                              ? "text-amber-500 dark:text-amber-400"
                               : score === 4
-                              ? "text-lime-400"
-                              : "text-emerald-400"
+                              ? "text-lime-500 dark:text-lime-400"
+                              : "text-emerald-500 dark:text-emerald-400"
                           }`}
                         >
                           {label}
@@ -340,7 +339,7 @@ export default function AccountPage() {
                     {/* requirements */}
                     <ul className="mt-3 grid grid-cols-2 gap-2 text-xs">
                       {[
-                        { ok: pwReqs.length, label: "At least 8 characters" },
+                        { ok: pwReqs.length, label: "At least 8 chars" },
                         { ok: pwReqs.upper, label: "Uppercase (A–Z)" },
                         { ok: pwReqs.lower, label: "Lowercase (a–z)" },
                         { ok: pwReqs.number, label: "Number (0–9)" },
@@ -349,18 +348,18 @@ export default function AccountPage() {
                       ].map((r, i) => (
                         <li key={i} className="flex items-center gap-2">
                           {r.ok ? (
-                            <Check className="h-4 w-4 text-emerald-400" />
+                            <Check className="h-4 w-4 text-emerald-500 dark:text-emerald-400" />
                           ) : (
-                            <AlertTriangle className="h-4 w-4 text-zinc-500" />
+                            <AlertTriangle className="h-4 w-4 text-gray-400 dark:text-zinc-500" />
                           )}
-                          <span className={r.ok ? "text-zinc-300" : "text-zinc-500"}>{r.label}</span>
+                          <span className={r.ok ? "text-gray-700 dark:text-zinc-300" : "text-gray-400 dark:text-zinc-500"}>{r.label}</span>
                         </li>
                       ))}
                     </ul>
                   </div>
 
                   <div className="md:col-span-1">
-                    <label className="block text-xs uppercase tracking-wide text-zinc-400 mb-2">
+                    <label className="block text-xs uppercase tracking-wide text-gray-500 dark:text-zinc-400 mb-2 font-medium">
                       Confirm new password
                     </label>
                     <Input
@@ -368,18 +367,18 @@ export default function AccountPage() {
                       value={confirmPw}
                       onChange={(e) => setConfirmPw(e.target.value)}
                       placeholder="Re-enter new password"
-                      className="bg-zinc-800/50 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-[#e78a53] focus:ring-[#e78a53]/20"
+                      className="bg-white dark:bg-zinc-800/50 border-gray-200 dark:border-zinc-700 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-zinc-500 focus:border-[#e78a53] focus:ring-[#e78a53]/20"
                       autoComplete="new-password"
                     />
                     {confirmPw.length > 0 && newPw !== confirmPw && (
-                      <p className="text-xs text-red-400 mt-2">Passwords do not match.</p>
+                      <p className="text-xs text-red-500 dark:text-red-400 mt-2">Passwords do not match.</p>
                     )}
 
                     <div className="mt-4">
                       <Button
                         onClick={changePassword}
                         disabled={!allPwOk}
-                        className="bg-[#e78a53] hover:bg-[#e78a53]/90 text-white"
+                        className="bg-[#e78a53] hover:bg-[#e78a53]/90 text-white w-full md:w-auto shadow-md shadow-orange-500/20"
                       >
                         Update password
                       </Button>
@@ -393,18 +392,18 @@ export default function AccountPage() {
 
         {/* toast */}
         {toast && (
-          <div className="mt-4 inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm
-            border
-            bg-zinc-900/70 backdrop-blur
-            border-zinc-800
-            text-zinc-200
+          <div className="mt-4 inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium
+            border shadow-lg animate-in fade-in slide-in-from-bottom-4 duration-200
+            bg-white/90 dark:bg-zinc-900/90 backdrop-blur
+            border-gray-200 dark:border-zinc-800
+            text-gray-800 dark:text-zinc-200
           ">
             {toast.type === "ok" ? (
-              <Check className="h-4 w-4 text-emerald-400" />
+              <Check className="h-4 w-4 text-emerald-500 dark:text-emerald-400" />
             ) : (
-              <AlertTriangle className="h-4 w-4 text-red-400" />
+              <AlertTriangle className="h-4 w-4 text-red-500 dark:text-red-400" />
             )}
-            <span className={toast.type === "ok" ? "text-emerald-400" : "text-red-400"}>
+            <span className={toast.type === "ok" ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}>
               {toast.msg}
             </span>
           </div>
@@ -413,8 +412,8 @@ export default function AccountPage() {
 
       {/* loading overlay */}
       {loading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="rounded-xl border border-zinc-800 bg-zinc-900/70 px-4 py-2 text-zinc-300">
+        <div className="absolute inset-0 flex items-center justify-center bg-white/50 dark:bg-black/40 backdrop-blur-sm z-50">
+          <div className="rounded-xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-6 py-3 text-gray-600 dark:text-zinc-300 shadow-xl">
             Loading account…
           </div>
         </div>

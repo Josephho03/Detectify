@@ -11,6 +11,8 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { Shield } from "lucide-react";
 import { motion, type Variants } from "framer-motion";
 import AuthButtons from "@/components/auth-buttons";
+import ChatWidget from "@/components/ChatWidget"; 
+
 
 export default function Home() {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -123,9 +125,7 @@ export default function Home() {
         </a>
 
         {/* Center Nav (now behind right buttons) */}
-        <div
-          className="absolute inset-0 flex items-center justify-center space-x-1 text-sm font-medium text-muted-foreground pointer-events-none z-[40]"
-        >
+        <div className="absolute inset-0 flex items-center justify-center space-x-1 text-sm font-medium text-muted-foreground pointer-events-none z-[40]">
           <div className="flex gap-1 pointer-events-auto">
             {navItems.map((item) => (
               <a
@@ -140,7 +140,10 @@ export default function Home() {
                   const element = document.getElementById(item.id);
                   if (element) {
                     const headerOffset = 120;
-                    const y = element.getBoundingClientRect().top + window.pageYOffset - headerOffset;
+                    const y =
+                      element.getBoundingClientRect().top +
+                      window.pageYOffset -
+                      headerOffset;
                     window.scrollTo({ top: y, behavior: "smooth" });
                   }
                 }}
@@ -157,7 +160,6 @@ export default function Home() {
           <AuthButtons />
         </div>
       </header>
-
 
       {/* Mobile Header */}
       <header className="sticky top-4 z-[9999] mx-4 flex w-auto flex-row items-center justify-between rounded-full bg-background/80 backdrop-blur-sm border border-border/50 shadow-lg md:hidden px-4 py-3">
@@ -277,7 +279,6 @@ export default function Home() {
         <News />
       </motion.div>
 
-
       <motion.div
         id="faq"
         initial="hidden"
@@ -290,6 +291,15 @@ export default function Home() {
       </motion.div>
 
       <StickyFooter />
+
+      {/* ✅ NEW: Floating Chatbot (does not affect layout) */}
+      <ChatWidget
+        title="Detectify Assistant"
+        context={{
+          page: "home",
+          sections: navItems.map((n) => n.label),
+        }}
+      />
     </div>
   );
 }

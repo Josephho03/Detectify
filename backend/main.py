@@ -176,11 +176,6 @@ def analyse_image_for_explanations(image_bgr: np.ndarray):
 # FILTER / HEAVY-MANIPULATION HEURISTIC
 # -------------------
 def looks_like_filtered(p_fake: float, tex: int, light: int, pix: int) -> bool:
-    """
-    Heuristic: if the deepfake model is NOT screaming "fake",
-    but CV scores say "this face is extremely weird",
-    we treat it as 'filtered/manipulated' rather than deepfake.
-    """
     if p_fake >= DEEPFAKE_THRESHOLD:
         # Model already strongly believes it's a deepfake → don't override
         return False
@@ -199,15 +194,7 @@ def looks_like_filtered(p_fake: float, tex: int, light: int, pix: int) -> bool:
 
     return False
 
-# -------------------
-# VERDICT LOGIC
-# -------------------
 def build_verdict(p_fake: float, is_filtered: bool):
-    """
-    p_fake: 0.0 (confident real) → 1.0 (confident fake)
-    is_filtered: heuristic flag for heavy visual filters / manipulations.
-    """
-
     # First, strong deepfake
     if p_fake >= DEEPFAKE_THRESHOLD:
         return (

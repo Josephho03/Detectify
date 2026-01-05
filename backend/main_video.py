@@ -31,7 +31,7 @@ from training.train_ffpp_video_model import (
 # -----------------------------------------------------------
 BASE_DIR = Path(__file__).resolve().parent
 
-DEFAULT_MODEL_PATH = BASE_DIR / "models" / "testing" / "video_best_model.pth"
+DEFAULT_MODEL_PATH = BASE_DIR / "models" / "video" / "video_best_model.pth"
 env_model_path = os.getenv("VIDEO_MODEL_PATH")
 MODEL_PATH = Path(env_model_path) if env_model_path else DEFAULT_MODEL_PATH
 

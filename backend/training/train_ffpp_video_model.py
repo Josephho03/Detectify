@@ -363,7 +363,7 @@ def main():
     # STAGE 2: Fine Tuning
     print("\n=== STAGE 2: Fine Tuning (Aggressive) ===")
     for p in model.backbone.parameters(): p.requires_grad = True
-    opt = optim.Adam(model.parameters(), lr=LR_STAGE2) # Higher LR here
+    opt = optim.Adam(model.parameters(), lr=LR_STAGE2) 
     
     for ep in range(STAGE2_EPOCHS):
         tl, ta = train_epoch(model, train_dl, criterion, opt, device, ACCUMULATION_STEPS)

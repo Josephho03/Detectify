@@ -86,22 +86,27 @@ export default function NewsPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header — Matching Contact Page */}
+    <div className="min-h-screen bg-gray-50 dark:bg-black transition-colors duration-300 relative overflow-hidden">
+       {/* Background gradients */}
+      <div className="absolute inset-0 bg-gradient-to-br from-white via-gray-50 to-gray-100 dark:from-zinc-900 dark:via-black dark:to-zinc-900 transition-colors duration-300" />
+      <div className="pointer-events-none absolute -top-24 -right-16 w-[28rem] h-[28rem] rounded-full bg-[#e78a53]/10 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-24 -left-16 w-[34rem] h-[34rem] rounded-full bg-[#e78a53]/5 blur-3xl" />
+
+      {/* Header */}
       <header className="sticky top-4 z-50 mx-auto max-w-4xl px-4">
-        <div className="flex items-center justify-between rounded-full bg-black/80 backdrop-blur-sm border border-zinc-800 shadow-lg px-6 py-3">
+        <div className="flex items-center justify-between rounded-full bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md border border-gray-200 dark:border-zinc-800 shadow-lg px-6 py-3 transition-colors duration-300">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-full bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center">
+            <div className="h-8 w-8 rounded-full bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center shadow-md shadow-orange-500/20">
               <Shield className="h-5 w-5 text-white" />
             </div>
-            <span className="font-bold text-white">Detectify</span>
+            <span className="font-bold text-gray-900 dark:text-white">Detectify</span>
           </Link>
 
           {/* Back button */}
           <Link
             href="/"
-            className="flex items-center gap-2 text-sm text-zinc-400 hover:text-white transition-colors"
+            className="flex items-center gap-2 text-sm text-gray-500 hover:text-orange-600 dark:text-zinc-400 dark:hover:text-white transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
             Back to Home
@@ -109,12 +114,7 @@ export default function NewsPage() {
         </div>
       </header>
 
-      {/* BG accents */}
-      <div className="absolute inset-0 bg-gradient-to-br from-zinc-900 via-black to-zinc-900" />
-      <div className="pointer-events-none absolute -top-24 -right-16 w-[28rem] h-[28rem] rounded-full bg-[#e78a53]/10 blur-3xl" />
-      <div className="pointer-events-none absolute -bottom-24 -left-16 w-[34rem] h-[34rem] rounded-full bg-[#e78a53]/5 blur-3xl" />
-
-      <section className="relative py-24 sm:py-32">
+      <section className="relative py-24 sm:py-32 z-10">
         <div className="container mx-auto px-4">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -123,32 +123,32 @@ export default function NewsPage() {
             className="text-center mb-16"
           >
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-orange-500/10 border border-orange-500/20 rounded-full mb-4">
-              <TrendingUp className="h-5 w-5 text-orange-500" />
-              <span className="text-sm font-medium text-orange-500">
+              <TrendingUp className="h-5 w-5 text-orange-600 dark:text-orange-500" />
+              <span className="text-sm font-medium text-orange-600 dark:text-orange-500">
                 Latest Updates
               </span>
             </div>
-            <h1 className="text-4xl font-bold tracking-tight text-balance text-foreground sm:text-6xl mb-4">
+            <h1 className="text-4xl font-bold tracking-tight text-balance text-gray-900 dark:text-white sm:text-6xl mb-4">
               Deepfake News &amp; Updates
             </h1>
-            <p className="text-lg text-pretty text-muted-foreground max-w-2xl mx-auto">
+            <p className="text-lg text-pretty text-gray-600 dark:text-zinc-400 max-w-2xl mx-auto">
               Stay informed about the latest developments in deepfake technology,
               detection methods, and security measures.
             </p>
           </motion.div>
 
           {error && (
-            <div className="text-center text-sm text-red-400 mb-6">
+            <div className="text-center text-sm text-red-500 dark:text-red-400 mb-6">
               {error}
             </div>
           )}
 
           {loading ? (
-            <div className="text-center text-muted-foreground">
+            <div className="text-center text-gray-500 dark:text-zinc-500">
               Loading articles...
             </div>
           ) : allNews.length === 0 ? (
-            <div className="text-center text-muted-foreground">
+            <div className="text-center text-gray-500 dark:text-zinc-500">
               No news articles yet.
             </div>
           ) : (
@@ -162,14 +162,14 @@ export default function NewsPage() {
                   transition={{ duration: 0.5, delay: index * 0.1 }}
                   className="group"
                 >
-                  <div className="bg-card border border-border rounded-2xl overflow-hidden hover:border-orange-500/50 transition-all duration-300 hover:shadow-xl">
+                  <div className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl overflow-hidden hover:border-orange-500/50 transition-all duration-300 hover:shadow-xl hover:shadow-orange-500/5">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                      {/* Image – fixed aspect so it fits the box nicely */}
-                      <div className="md:col-span-1 aspect-video md:aspect-square overflow-hidden">
+                      {/* Image */}
+                      <div className="md:col-span-1 aspect-video md:aspect-square overflow-hidden bg-gray-100 dark:bg-zinc-800">
                         <img
                           src={item.image || "/placeholder.svg"}
                           alt={item.title}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                         />
                       </div>
 
@@ -177,35 +177,35 @@ export default function NewsPage() {
                       <div className="md:col-span-2 p-6 flex flex-col justify-between">
                         <div>
                           <div className="flex items-center gap-4 mb-3 flex-wrap">
-                            <span className="px-3 py-1 bg-primary/10 text-primary text-xs font-medium rounded-full">
+                            <span className="px-3 py-1 bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 border border-gray-200 dark:border-zinc-700 text-xs font-medium rounded-full">
                               {item.category}
                             </span>
-                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-zinc-500">
                               <Calendar className="h-3 w-3" />
                               {item.date}
                             </div>
-                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-zinc-500">
                               <User className="h-3 w-3" />
                               {item.author}
                             </div>
-                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-zinc-500">
                               <Clock className="h-3 w-3" />
                               {item.readTime}
                             </div>
                           </div>
 
-                          <h2 className="text-2xl font-bold text-foreground mb-2 group-hover:text-primary transition-colors">
+                          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2 group-hover:text-orange-600 dark:group-hover:text-orange-500 transition-colors">
                             {item.title}
                           </h2>
 
-                          <p className="text-sm text-pretty text-muted-foreground line-clamp-3">
+                          <p className="text-sm text-pretty text-gray-600 dark:text-zinc-400 line-clamp-3 leading-relaxed">
                             {item.excerpt}
                           </p>
                         </div>
 
                         <Button
                           variant="ghost"
-                          className="w-fit mt-4 text-orange-500 hover:text-orange-600"
+                          className="w-fit mt-4 text-orange-600 hover:text-orange-700 hover:bg-orange-50 dark:text-orange-500 dark:hover:text-orange-400 dark:hover:bg-orange-500/10 p-0 hover:bg-transparent"
                           onClick={() => setSelectedArticle(item)}
                         >
                           Read Full Article →
@@ -222,16 +222,16 @@ export default function NewsPage() {
 
       {/* 🔍 Full article modal */}
       {selectedArticle && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center px-4">
-          <div className="bg-card border border-border rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto shadow-2xl">
+        <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-center justify-center px-4 animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto shadow-2xl">
             {/* Modal header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-border sticky top-0 bg-card/95 backdrop-blur-md z-10">
-              <h2 className="text-lg sm:text-xl font-semibold text-foreground">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-zinc-800 sticky top-0 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md z-10">
+              <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white line-clamp-1 mr-4">
                 {selectedArticle.title}
               </h2>
               <button
                 onClick={() => setSelectedArticle(null)}
-                className="p-1 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-zinc-800 text-gray-500 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-white transition-colors"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -240,7 +240,7 @@ export default function NewsPage() {
             {/* Modal body */}
             <div className="px-6 pb-6 pt-4 space-y-4">
               {/* Image */}
-              <div className="w-full aspect-video rounded-xl overflow-hidden mb-4">
+              <div className="w-full aspect-video rounded-xl overflow-hidden mb-4 bg-gray-100 dark:bg-zinc-800">
                 <img
                   src={selectedArticle.image || "/placeholder.svg"}
                   alt={selectedArticle.title}
@@ -249,8 +249,8 @@ export default function NewsPage() {
               </div>
 
               {/* Meta info */}
-              <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground mb-2">
-                <span className="px-3 py-1 bg-primary/10 text-primary rounded-full text-[11px] font-medium">
+              <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500 dark:text-zinc-500 mb-2">
+                <span className="px-3 py-1 bg-orange-100 text-orange-700 dark:bg-orange-500/10 dark:text-orange-500 rounded-full text-[11px] font-medium border border-orange-200 dark:border-orange-500/20">
                   {selectedArticle.category}
                 </span>
                 <div className="flex items-center gap-1">
@@ -273,7 +273,7 @@ export default function NewsPage() {
                   href={selectedArticle.link}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-xs sm:text-sm text-orange-400 hover:text-orange-300 underline break-all"
+                  className="text-xs sm:text-sm text-orange-600 hover:text-orange-700 dark:text-orange-400 dark:hover:text-orange-300 underline break-all"
                 >
                   {selectedArticle.link}
                 </a>
@@ -281,7 +281,7 @@ export default function NewsPage() {
 
               {/* Content with line breaks / HTML */}
               <div
-                className="mt-2 text-sm text-muted-foreground leading-relaxed space-y-2"
+                className="mt-2 text-sm text-gray-600 dark:text-zinc-300 leading-relaxed space-y-4 article-content"
                 dangerouslySetInnerHTML={{ __html: selectedArticle.content }}
               />
             </div>

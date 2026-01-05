@@ -22,7 +22,8 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
-import { supabaseBrowser } from "@/lib/supabase/client" // ⭐ NEW
+import { supabaseBrowser } from "@/lib/supabase/client"
+import ChatWidget from "@/components/ChatWidget"
 
 type Verdict = "authentic" | "suspicious" | "deepfake"
 type DetectionResultType = Verdict | null
@@ -69,39 +70,39 @@ async function logScanToSupabase(
   confidence: number
 ) {
   try {
-    const supabase = supabaseBrowser();
+    const supabase = supabaseBrowser()
 
     const {
       data: { session },
       error: sessionError,
-    } = await supabase.auth.getSession();
+    } = await supabase.auth.getSession()
 
     if (sessionError || !session?.user) {
-      console.warn("No session when logging scan:", sessionError);
-      return;
+      console.warn("No session when logging scan:", sessionError)
+      return
     }
 
-    const userId = session.user.id;
+    const userId = session.user.id
 
     const resultText =
       verdict === "authentic"
         ? "REAL"
         : verdict === "deepfake"
         ? "FAKE"
-        : "SUSPICIOUS";
+        : "SUSPICIOUS"
 
     const { error: insertError } = await supabase.from("scan_logs").insert({
       user_id: userId,
       media_type: mode === "image" ? "IMAGE" : "VIDEO",
       result: resultText,
       confidence,
-    });
+    })
 
     if (insertError) {
-      console.error("Failed to insert scan log:", insertError);
+      console.error("Failed to insert scan log:", insertError)
     }
   } catch (err) {
-    console.error("Unexpected error logging scan:", err);
+    console.error("Unexpected error logging scan:", err)
   }
 }
 
@@ -241,7 +242,9 @@ export default function DetectPage() {
       raw.verdict === "deepfake" ? "deepfake" : "authentic"
 
     const title =
-      mappedVerdict === "deepfake" ? "Deepfake Detected" : "No Deepfake Detected"
+      mappedVerdict === "deepfake"
+        ? "Deepfake Detected"
+        : "No Deepfake Detected"
 
     const mapped: DetectionApiResponse = {
       verdict: mappedVerdict,
@@ -277,9 +280,7 @@ export default function DetectPage() {
   const handleUpload = async () => {
     if (!file) {
       alert(
-        `Please upload a ${
-          isImageMode ? "image" : "video"
-        } before starting the analysis.`
+        `Please upload a ${isImageMode ? "image" : "video"} before starting the analysis.`
       )
       return
     }
@@ -307,11 +308,9 @@ export default function DetectPage() {
     } catch (err) {
       console.error(err)
       alert(
-        `Failed to analyze ${
+        `Failed to analyze ${isImageMode ? "image" : "video"}. Make sure the ${
           isImageMode ? "image" : "video"
-        }. Make sure the ${isImageMode ? "image" : "video"} backend is running (${
-          isImageMode ? IMAGE_API_BASE_URL : VIDEO_API_BASE_URL
-        }).`
+        } backend is running (${isImageMode ? IMAGE_API_BASE_URL : VIDEO_API_BASE_URL}).`
       )
     } finally {
       setIsAnalyzing(false)
@@ -366,50 +365,52 @@ export default function DetectPage() {
   const resultConfig = getResultConfig()
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header — Matching Contact Page */}
-        <header className="sticky top-4 z-50 mx-auto max-w-4xl px-4">
-          <div className="flex items-center justify-between rounded-full bg-black/80 backdrop-blur-sm border border-zinc-800 shadow-lg px-6 py-3">
-            
-            {/* Logo */}
-            <Link href="/" className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-full bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center">
-                <Shield className="h-5 w-5 text-white" />
-              </div>
-              <span className="font-bold text-white">Detectify</span>
-            </Link>
+    <div className="min-h-screen bg-background relative transition-colors duration-300">
+      {/* BACKGROUND */}
+      <div className="absolute inset-0 bg-gradient-to-br from-zinc-50 via-white to-zinc-100 dark:from-zinc-900 dark:via-black dark:to-zinc-900 transition-colors duration-300" />
 
-            {/* Back button */}
-            <Link
-              href="/"
-              className="flex items-center gap-2 text-sm text-zinc-400 hover:text-white transition-colors"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back to Home
-            </Link>
+      {/* Decorative Orbs */}
+      <div className="pointer-events-none absolute -top-24 -right-16 w-[28rem] h-[28rem] rounded-full bg-orange-500/10 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-24 -left-16 w-[34rem] h-[34rem] rounded-full bg-orange-500/5 blur-3xl" />
 
-          </div>
-        </header>
+      {/* Header */}
+      <header className="sticky top-4 z-50 mx-auto max-w-4xl px-4">
+        <div className="flex items-center justify-between rounded-full bg-white/80 dark:bg-black/80 backdrop-blur-md border border-zinc-200 dark:border-zinc-800 shadow-lg px-6 py-3 transition-all duration-300">
+          {/* Logo */}
+          <Link href="/" className="flex items-center gap-2">
+            <div className="h-8 w-8 rounded-full bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center shadow-sm">
+              <Shield className="h-5 w-5 text-white" />
+            </div>
+            <span className="font-bold text-zinc-900 dark:text-white transition-colors">
+              Detectify
+            </span>
+          </Link>
 
-        {/* BG accents to match Contact Page */}
-        <div className="absolute inset-0 bg-gradient-to-br from-zinc-900 via-black to-zinc-900" />
-        <div className="pointer-events-none absolute -top-24 -right-16 w-[28rem] h-[28rem] rounded-full bg-[#e78a53]/10 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-24 -left-16 w-[34rem] h-[34rem] rounded-full bg-[#e78a53]/5 blur-3xl" />
+          {/* Back button */}
+          <Link
+            href="/"
+            className="flex items-center gap-2 text-sm text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Home
+          </Link>
+        </div>
+      </header>
 
       {/* Main Content */}
       <section className="relative py-16 sm:py-20">
         <div className="container mx-auto px-4">
-          {/* Hero */}
+          {/* Hero Section */}
           <motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.45 }}
             className="text-center mb-8"
           >
-            <h1 className="text-4xl font-bold tracking-tight text-balance text-foreground sm:text-6xl mb-3">
+            <h1 className="text-4xl font-bold tracking-tight text-balance text-zinc-900 dark:text-white sm:text-6xl mb-3 transition-colors">
               Detect Deepfakes Now
             </h1>
-            <p className="text-lg text-pretty text-muted-foreground max-w-2xl mx-auto">
+            <p className="text-lg text-pretty text-zinc-600 dark:text-zinc-400 max-w-2xl mx-auto transition-colors">
               Upload an image or video to analyze for deepfake manipulation.
               Choose your detection mode below and get instant results with
               confidence scores and forensic-style breakdowns.
@@ -417,14 +418,14 @@ export default function DetectPage() {
 
             {/* Mode Toggle */}
             <div className="mt-5 flex justify-center">
-              <div className="inline-flex items-center rounded-full bg-card border border-border px-1 py-1">
+              <div className="inline-flex items-center rounded-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 px-1 py-1 shadow-sm transition-colors">
                 <button
                   type="button"
                   onClick={() => handleModeChange("image")}
                   className={`px-4 py-2 text-sm rounded-full flex items-center gap-2 transition-all ${
                     isImageMode
                       ? "bg-orange-500 text-white shadow-md"
-                      : "text-muted-foreground hover:text-foreground"
+                      : "text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white"
                   }`}
                 >
                   <ImageIcon className="h-4 w-4" />
@@ -436,7 +437,7 @@ export default function DetectPage() {
                   className={`px-4 py-2 text-sm rounded-full flex items-center gap-2 transition-all ${
                     !isImageMode
                       ? "bg-orange-500 text-white shadow-md"
-                      : "text-muted-foreground hover:text-foreground"
+                      : "text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white"
                   }`}
                 >
                   <Video className="h-4 w-4" />
@@ -452,44 +453,52 @@ export default function DetectPage() {
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: 0.05 }}
-              className="bg-card border border-border rounded-xl p-6 text-center"
+              className="bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-xl p-6 text-center shadow-sm transition-colors"
             >
               <ImageIcon className="h-12 w-12 text-orange-500 mx-auto mb-4" />
-              <h3 className="font-semibold text-lg mb-2">Image Analysis</h3>
-              <p className="text-sm text-muted-foreground">
+              <h3 className="font-semibold text-lg mb-2 text-zinc-900 dark:text-white">
+                Image Analysis
+              </h3>
+              <p className="text-sm text-zinc-600 dark:text-zinc-400">
                 Detect manipulated photos with facial feature analysis and
                 pixel-level examination.
               </p>
             </motion.div>
+
             <motion.div
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: 0.1 }}
-              className="bg-card border border-border rounded-xl p-6 text-center"
+              className="bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-xl p-6 text-center shadow-sm transition-colors"
             >
               <Video className="h-12 w-12 text-orange-500 mx-auto mb-4" />
-              <h3 className="font-semibold text-lg mb-2">Video Detection</h3>
-              <p className="text-sm text-muted-foreground">
+              <h3 className="font-semibold text-lg mb-2 text-zinc-900 dark:text-white">
+                Video Detection
+              </h3>
+              <p className="text-sm text-zinc-600 dark:text-zinc-400">
                 Frame-by-frame and temporal pattern analysis to identify
                 deepfake videos and synthetic media.
               </p>
             </motion.div>
+
             <motion.div
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: 0.15 }}
-              className="bg-card border border-border rounded-xl p-6 text-center"
+              className="bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-xl p-6 text-center shadow-sm transition-colors"
             >
               <Shield className="h-12 w-12 text-orange-500 mx-auto mb-4" />
-              <h3 className="font-semibold text-lg mb-2">Real-Time Results</h3>
-              <p className="text-sm text-muted-foreground">
+              <h3 className="font-semibold text-lg mb-2 text-zinc-900 dark:text-white">
+                Real-Time Results
+              </h3>
+              <p className="text-sm text-zinc-600 dark:text-zinc-400">
                 Get instant detection results with confidence scores and
                 human-friendly explanations.
               </p>
             </motion.div>
           </div>
 
-          {/* Main card */}
+          {/* Main Upload Card */}
           <motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
@@ -498,7 +507,7 @@ export default function DetectPage() {
           >
             <div
               ref={uploadRef}
-              className="bg-card border border-border rounded-2xl p-8 shadow-xl"
+              className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-8 shadow-xl transition-colors duration-300"
             >
               {/* Hidden file input */}
               <input
@@ -517,34 +526,34 @@ export default function DetectPage() {
                     onDragOver={handleDragOver}
                     onDragLeave={handleDragLeave}
                     onDrop={handleDrop}
-                    className={`cursor-pointer border-2 border-dashed rounded-xl p-12 mb-6 transition-colors ${
+                    className={`cursor-pointer border-2 border-dashed rounded-xl p-12 mb-6 transition-all duration-300 ${
                       isDragActive
                         ? "border-orange-500 bg-orange-500/5"
-                        : "border-border hover:border-orange-500/60"
+                        : "border-zinc-300 dark:border-zinc-700 hover:border-orange-500/60 dark:hover:border-orange-500/60 hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
                     }`}
                   >
-                    <Upload className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-foreground font-medium mb-2 text-lg">
+                    <Upload className="h-16 w-16 text-zinc-400 dark:text-zinc-500 mx-auto mb-4" />
+                    <p className="text-zinc-900 dark:text-white font-medium mb-2 text-lg">
                       {file
                         ? `Selected: ${file.name}`
                         : isImageMode
                         ? "Click or drag & drop an image"
                         : "Click or drag & drop a video"}
                     </p>
-                    <p className="text-sm text-muted-foreground mb-4">
+                    <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-4">
                       {isImageMode
                         ? "JPG, PNG, WEBP (MAX. 20MB)"
                         : "MP4, MOV, AVI (recommended under 50MB)"}
                     </p>
 
                     {/* inner divider */}
-                    <div className="mx-auto mt-2 mb-4 h-px max-w-md border-t border-dashed border-border/40" />
+                    <div className="mx-auto mt-2 mb-4 h-px max-w-md border-t border-dashed border-zinc-300 dark:border-zinc-700" />
 
                     {/* Short limitations block */}
                     <div className="mx-auto max-w-md flex items-start gap-2 text-left">
                       <Info className="h-3.5 w-3.5 mt-0.5 text-orange-500 flex-shrink-0" />
-                      <div className="text-[11px] sm:text-xs text-muted-foreground space-y-1">
-                        <p className="font-medium text-foreground/90">
+                      <div className="text-[11px] sm:text-xs text-zinc-500 dark:text-zinc-400 space-y-1">
+                        <p className="font-medium text-zinc-900 dark:text-zinc-200">
                           {isImageMode
                             ? "Image model scope & limitations"
                             : "Video model scope & limitations"}
@@ -552,12 +561,12 @@ export default function DetectPage() {
                         {isImageMode ? (
                           <>
                             <p>
-                              • Best for clear human faces (trained on GAN vs real
-                              faces).
+                              • Best for clear human faces (trained on GAN vs
+                              real faces).
                             </p>
                             <p>
-                              • Filters / AR effects, strong warps or multiple/hidden
-                              faces may confuse the detector.
+                              • Filters / AR effects, strong warps or
+                              multiple/hidden faces may confuse the detector.
                             </p>
                           </>
                         ) : (
@@ -567,20 +576,20 @@ export default function DetectPage() {
                               (FaceForensics++ style).
                             </p>
                             <p>
-                              • Heavy filters, very low light, compression or screen
-                              recordings can reduce reliability.
+                              • Heavy filters, very low light, compression or
+                              screen recordings can reduce reliability.
                             </p>
                           </>
                         )}
                       </div>
                     </div>
 
-                    <p className="mt-3 text-[11px] text-muted-foreground">
-                      This is a research tool and not 100% accurate. Always verify
-                      important decisions manually.
+                    <p className="mt-3 text-[11px] text-zinc-400 dark:text-zinc-500">
+                      This is a research tool and not 100% accurate. Always
+                      verify important decisions manually.
                     </p>
 
-                    <p className="mt-2 text-[11px] text-muted-foreground">
+                    <p className="mt-2 text-[11px] text-zinc-400 dark:text-zinc-500">
                       You can also drag & drop a file anywhere inside this box.
                     </p>
                   </div>
@@ -588,10 +597,10 @@ export default function DetectPage() {
                   {/* Preview */}
                   {previewUrl && (
                     <div className="mb-6">
-                      <h4 className="text-sm font-semibold text-muted-foreground mb-2 text-left">
+                      <h4 className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 mb-2 text-left">
                         Preview
                       </h4>
-                      <div className="rounded-xl border border-border bg-background/40 p-3">
+                      <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-black/40 p-3">
                         {isImageMode ? (
                           <img
                             src={previewUrl}
@@ -613,7 +622,7 @@ export default function DetectPage() {
                     onClick={handleUpload}
                     size="lg"
                     disabled={!file || isAnalyzing}
-                    className="w-full sm:w-auto px-8 bg-orange-500 hover:bg-orange-600 disabled:opacity-60"
+                    className="w-full sm:w-auto px-8 bg-orange-500 hover:bg-orange-600 text-white disabled:opacity-60"
                   >
                     {file
                       ? `Start ${isImageMode ? "Image" : "Video"} Analysis`
@@ -626,15 +635,15 @@ export default function DetectPage() {
               {isAnalyzing && (
                 <div className="text-center py-12">
                   <Loader2 className="h-20 w-20 text-orange-500 mx-auto mb-6 animate-spin" />
-                  <p className="text-foreground font-medium mb-2 text-lg">
+                  <p className="text-zinc-900 dark:text-white font-medium mb-2 text-lg">
                     Analyzing {isImageMode ? "image" : "video"}...
                   </p>
-                  <p className="text-sm text-muted-foreground mb-4">
+                  <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-4">
                     Our AI is examining facial features, textures, lighting and
                     pixel patterns for signs of manipulation.
                   </p>
                   <div className="max-w-md mx-auto">
-                    <div className="h-2 bg-muted rounded-full overflow-hidden">
+                    <div className="h-2 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
                       <motion.div
                         className="h-full bg-gradient-to-r from-orange-500 to-orange-600"
                         initial={{ width: "0%" }}
@@ -658,14 +667,14 @@ export default function DetectPage() {
                     <resultConfig.icon
                       className={`h-20 w-20 ${resultConfig.color} mx-auto mb-4`}
                     />
-                    <h3 className="text-3xl font-bold text-foreground mb-2">
+                    <h3 className="text-3xl font-bold text-zinc-900 dark:text-white mb-2">
                       {resultConfig.title}
                     </h3>
-                    <p className="text-muted-foreground mb-4">
+                    <p className="text-zinc-600 dark:text-zinc-300 mb-4">
                       {resultConfig.description}
                     </p>
-                    <div className="inline-flex items-center gap-2 px-6 py-3 bg-background/50 rounded-full">
-                      <span className="text-sm text-muted-foreground">
+                    <div className="inline-flex items-center gap-2 px-6 py-3 bg-white/60 dark:bg-black/20 border border-zinc-200/50 dark:border-white/5 rounded-full">
+                      <span className="text-sm text-zinc-600 dark:text-zinc-400">
                         Confidence:
                       </span>
                       <span
@@ -678,43 +687,43 @@ export default function DetectPage() {
 
                   {/* Details + Summary */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                    <div className="bg-background/50 rounded-lg p-4">
-                      <h4 className="font-semibold text-sm mb-3">
+                    <div className="bg-white/60 dark:bg-zinc-900/50 border border-zinc-200/50 dark:border-white/5 rounded-lg p-4">
+                      <h4 className="font-semibold text-sm mb-3 text-zinc-900 dark:text-white">
                         Detection Details
                       </h4>
                       <div className="space-y-2 text-sm">
                         <div className="flex justify-between">
-                          <span className="text-muted-foreground">
+                          <span className="text-zinc-600 dark:text-zinc-400">
                             Facial Texture Analysis:
                           </span>
-                          <span className="font-medium">
+                          <span className="font-medium text-zinc-900 dark:text-zinc-200">
                             {resultConfig.details.facial_texture}%
                           </span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-muted-foreground">
+                          <span className="text-zinc-600 dark:text-zinc-400">
                             Lighting &amp; Shadow Check:
                           </span>
-                          <span className="font-medium">
+                          <span className="font-medium text-zinc-900 dark:text-zinc-200">
                             {resultConfig.details.lighting_shadow}%
                           </span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-muted-foreground">
+                          <span className="text-zinc-600 dark:text-zinc-400">
                             Pixel-Level Artifacts:
                           </span>
-                          <span className="font-medium">
+                          <span className="font-medium text-zinc-900 dark:text-zinc-200">
                             {resultConfig.details.pixel_artifacts}%
                           </span>
                         </div>
                       </div>
                     </div>
 
-                    <div className="bg-background/50 rounded-lg p-4">
-                      <h4 className="font-semibold text-sm mb-3">
+                    <div className="bg-white/60 dark:bg-zinc-900/50 border border-zinc-200/50 dark:border-white/5 rounded-lg p-4">
+                      <h4 className="font-semibold text-sm mb-3 text-zinc-900 dark:text-white">
                         Analysis Summary
                       </h4>
-                      <div className="space-y-2 text-sm text-muted-foreground">
+                      <div className="space-y-2 text-sm text-zinc-600 dark:text-zinc-400">
                         <p>
                           • {resultConfig.summary.facial_landmarks_examined}{" "}
                           facial landmarks examined
@@ -733,14 +742,14 @@ export default function DetectPage() {
 
                   {/* Why this result */}
                   {resultConfig.reasons.length > 0 && (
-                    <div className="bg-background/60 rounded-lg p-4 mb-6 border border-border/60">
+                    <div className="bg-white/60 dark:bg-zinc-900/50 border border-zinc-200/50 dark:border-white/5 rounded-lg p-4 mb-6">
                       <div className="flex items-center gap-2 mb-2">
                         <Info className="h-4 w-4 text-orange-500" />
-                        <h4 className="text-sm font-semibold text-foreground">
+                        <h4 className="text-sm font-semibold text-zinc-900 dark:text-white">
                           Why this result?
                         </h4>
                       </div>
-                      <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside text-left">
+                      <ul className="text-sm text-zinc-600 dark:text-zinc-400 space-y-1 list-disc list-inside text-left">
                         {resultConfig.reasons.map((point, idx) => (
                           <li key={idx}>{point}</li>
                         ))}
@@ -750,7 +759,6 @@ export default function DetectPage() {
 
                   <Button
                     onClick={() => {
-                      // reset current result
                       setResultType(null)
                       setApiResult(null)
                       setFile(null)
@@ -758,11 +766,10 @@ export default function DetectPage() {
                         URL.revokeObjectURL(previewUrl)
                       }
                       setPreviewUrl(null)
-                      // immediately open file picker for "analyze with other files"
                       fileInputRef.current?.click()
                     }}
                     variant="outline"
-                    className="w-full"
+                    className="w-full border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-900 dark:text-white"
                   >
                     Analyze Another {isImageMode ? "Image" : "Video"}
                   </Button>
@@ -772,6 +779,18 @@ export default function DetectPage() {
           </motion.div>
         </div>
       </section>
+
+      {/* ✅ Floating Chat (does NOT affect layout) */}
+      <ChatWidget
+        context={{
+          page: "detect",
+          mode,
+          verdict: apiResult?.verdict,
+          confidence: apiResult?.confidence,
+          reasons: apiResult?.reasons,
+        }}
+        title="Detectify Assistant"
+      />
     </div>
   )
 }

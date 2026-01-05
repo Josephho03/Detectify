@@ -74,17 +74,25 @@ export default function AdminUsersPage() {
         now.getDate() - 7
       );
 
-      let activeCount = 0;
+      // --- NEW ACTIVE TODAY METHOD USING SCAN LOGS ---
+      const { data: scanLogsToday, error: scanErr } = await supabase
+        .from("scan_logs")
+        .select("user_id, created_at")
+        .gte("created_at", startOfToday.toISOString());
+
+      if (scanErr) {
+        console.error("Error fetching scan logs for active today:", scanErr);
+      }
+
+      const activeUsers = new Set(
+        (scanLogsToday || []).map((log: any) => log.user_id)
+      );
+
+      setActiveToday(activeUsers.size);
+
+      // New This Week stays as before
       let newWeekCount = 0;
-
       for (const row of rows) {
-        if (row.updated_at) {
-          const updatedAt = new Date(row.updated_at);
-          if (updatedAt >= startOfToday) {
-            activeCount += 1;
-          }
-        }
-
         if (row.created_at) {
           const createdAt = new Date(row.created_at);
           if (createdAt >= sevenDaysAgo) {
@@ -92,9 +100,8 @@ export default function AdminUsersPage() {
           }
         }
       }
-
-      setActiveToday(activeCount);
       setNewThisWeek(newWeekCount);
+
 
       // 3) get scan counts per user from scan_logs
         const userIds = rows.map((r) => r.id);
